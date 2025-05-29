@@ -1,49 +1,95 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Coins, Star, Users, Zap, Download, Copy } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/components/ui/use-toast";
+
+interface Tool {
+  id: string;
+  name: string;
+  description: string;
+  credit_cost: number;
+  category: string;
+  rating: number;
+  total_uses: number;
+}
+
+interface UserProfile {
+  credits: number;
+}
 
 const ToolInterface = () => {
   const { id } = useParams();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  
+  const [tool, setTool] = useState<Tool | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // Mock user data - this will come from Supabase
-  const userCredits = 250;
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/login");
+    }
+  }, [user, authLoading, navigate]);
 
-  // Mock tool data - this will come from Supabase based on ID
-  const tool = {
-    id: 1,
-    name: "AI Content Generator",
-    description: "Create high-quality blog posts, articles, and marketing copy with advanced AI",
-    category: "Writing",
-    rating: 4.9,
-    users: 12500,
-    price: 5,
-    image: "📝",
-    tags: ["Content", "Marketing", "SEO"],
-    inputLabel: "What would you like me to write about?",
-    inputPlaceholder: "Enter your topic, keywords, or brief description...",
-    features: [
-      "SEO-optimized content",
-      "Multiple writing styles",
-      "Plagiarism-free output",
-      "Grammar correction"
-    ]
-  };
+  // Fetch tool and user data
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user || !id) return;
+
+      try {
+        // Fetch tool data
+        const { data: toolData, error: toolError } = await supabase
+          .from("tools")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (toolError) throw toolError;
+        setTool(toolData);
+
+        // Fetch user profile
+        const { data: profileData, error: profileError } = await supabase
+          .from("users")
+          .select("credits")
+          .eq("id", user.id)
+          .single();
+
+        if (profileError) throw profileError;
+        setUserProfile(profileData);
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: "Failed to load tool: " + error.message,
+          variant: "destructive",
+        });
+        navigate("/dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user && id) {
+      fetchData();
+    }
+  }, [user, id, toast, navigate]);
 
   const handleGenerate = async () => {
-    if (!input.trim()) {
+    if (!input.trim() || !tool || !user) {
       toast({
         title: "Input required",
         description: "Please enter some text to process",
@@ -52,10 +98,10 @@ const ToolInterface = () => {
       return;
     }
 
-    if (userCredits < tool.price) {
+    if (!userProfile || userProfile.credits < tool.credit_cost) {
       toast({
         title: "Insufficient credits",
-        description: `You need ${tool.price} credits to use this tool`,
+        description: `You need ${tool.credit_cost} credits to use this tool`,
         variant: "destructive"
       });
       return;
@@ -76,21 +122,69 @@ const ToolInterface = () => {
       });
     }, 200);
 
-    // Simulate API call delay
-    setTimeout(() => {
-      clearInterval(progressInterval);
-      setProgress(100);
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Mock AI response
-      setOutput(`Here's your AI-generated content based on "${input}":\n\n# The Future of AI Technology\n\nArtificial Intelligence has revolutionized the way we approach problem-solving and automation. In this comprehensive guide, we'll explore the key developments shaping the AI landscape.\n\n## Key Benefits\n\n1. **Increased Efficiency**: AI tools can process information faster than traditional methods\n2. **Cost Reduction**: Automated processes reduce operational costs\n3. **Better Decision Making**: Data-driven insights lead to informed choices\n\n## Implementation Strategies\n\nWhen implementing AI solutions, consider these important factors:\n\n- Start with clear objectives and measurable goals\n- Ensure data quality and accessibility\n- Train your team on new AI tools and processes\n- Monitor performance and iterate based on results\n\n## Conclusion\n\nThe integration of AI technology offers tremendous opportunities for growth and innovation. By following best practices and maintaining a strategic approach, organizations can harness the full potential of artificial intelligence.\n\n*This content was generated using advanced AI technology and optimized for SEO performance.*`);
+      // Generate mock response based on tool
+      const mockResponse = generateMockResponse(tool.name, input);
+      setOutput(mockResponse);
       
-      setIsProcessing(false);
+      // Deduct credits and create transaction
+      const newCredits = userProfile.credits - tool.credit_cost;
+      
+      // Update user credits
+      const { error: creditError } = await supabase
+        .from("users")
+        .update({ credits: newCredits })
+        .eq("id", user.id);
+
+      if (creditError) throw creditError;
+
+      // Create transaction record
+      const { error: transactionError } = await supabase
+        .from("transactions")
+        .insert({
+          user_id: user.id,
+          tool_id: tool.id,
+          input_data: { input },
+          output_data: { output: mockResponse },
+          credits_used: tool.credit_cost
+        });
+
+      if (transactionError) throw transactionError;
+
+      // Update local state
+      setUserProfile({ credits: newCredits });
       
       toast({
         title: "Content generated!",
-        description: `${tool.price} credits have been deducted from your balance`
+        description: `${tool.credit_cost} credits have been deducted from your balance`
       });
-    }, 3000);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to process request: " + error.message,
+        variant: "destructive"
+      });
+    } finally {
+      clearInterval(progressInterval);
+      setProgress(100);
+      setIsProcessing(false);
+    }
+  };
+
+  const generateMockResponse = (toolName: string, input: string) => {
+    const responses = {
+      "Text Summarizer": `Summary of "${input}":\n\n• Key Point 1: Main concept extracted from your text\n• Key Point 2: Secondary important information\n• Key Point 3: Supporting details and conclusions\n\nThis summary captures the essential information from your input text.`,
+      "Image Generator": `Image generation request: "${input}"\n\n[Generated Image Description]\nA high-quality AI-generated image based on your prompt. The image would show the elements you described with professional composition and lighting.\n\nNote: In a real implementation, this would return the actual generated image.`,
+      "Code Reviewer": `Code Review for: "${input}"\n\n✅ Strengths:\n• Good variable naming\n• Proper error handling\n• Clear function structure\n\n⚠️ Suggestions:\n• Consider adding type hints\n• Add unit tests\n• Optimize performance for large datasets\n\nOverall: Well-written code with room for minor improvements.`,
+      "Language Translator": `Translation of "${input}":\n\n[Original Text]\n${input}\n\n[Translated Text]\n[This would contain the actual translation in your target language]\n\nTranslation completed with high accuracy.`,
+      "SEO Optimizer": `SEO Analysis for: "${input}"\n\n📈 Recommendations:\n• Use primary keyword in title and first paragraph\n• Add meta description (150-160 characters)\n• Include internal and external links\n• Optimize for mobile readability\n• Add alt text to images\n\nSEO Score: 85/100 - Good optimization with room for improvement.`,
+      "Email Writer": `Professional Email for: "${input}"\n\nSubject: [Optimized Subject Line]\n\nDear [Recipient],\n\nI hope this email finds you well. I am writing to [purpose based on your input].\n\n[Body content tailored to your request]\n\nI look forward to your response.\n\nBest regards,\n[Your Name]`
+    };
+    
+    return responses[toolName as keyof typeof responses] || `Generated content for ${toolName}:\n\n${input}\n\nThis is AI-generated content based on your input.`;
   };
 
   const copyToClipboard = () => {
@@ -100,6 +194,18 @@ const ToolInterface = () => {
       description: "The generated content has been copied to your clipboard"
     });
   };
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user || !tool) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -119,7 +225,7 @@ const ToolInterface = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 bg-slate-100 px-3 py-2 rounded-lg">
                 <Coins className="h-4 w-4 text-slate-600" />
-                <span className="font-medium text-slate-800">{userCredits} credits</span>
+                <span className="font-medium text-slate-800">{userProfile?.credits || 0} credits</span>
               </div>
               <Link to="/pricing">
                 <Button variant="outline" size="sm">Buy Credits</Button>
@@ -136,7 +242,7 @@ const ToolInterface = () => {
             <Card>
               <CardHeader>
                 <div className="flex items-center space-x-3 mb-2">
-                  <div className="text-3xl">{tool.image}</div>
+                  <div className="text-3xl">🔧</div>
                   <div>
                     <CardTitle className="text-slate-800">{tool.name}</CardTitle>
                     <div className="flex items-center space-x-2 mt-1">
@@ -146,7 +252,7 @@ const ToolInterface = () => {
                       </div>
                       <div className="flex items-center space-x-1">
                         <Users className="h-4 w-4 text-slate-600" />
-                        <span className="text-sm text-slate-600">{tool.users.toLocaleString()}</span>
+                        <span className="text-sm text-slate-600">{tool.total_uses?.toLocaleString() || 0}</span>
                       </div>
                     </div>
                   </div>
@@ -156,36 +262,18 @@ const ToolInterface = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex flex-wrap gap-2">
-                    {tool.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary">{tag}</Badge>
-                    ))}
+                    <Badge variant="secondary">{tool.category}</Badge>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-slate-600">Cost per use</span>
                       <div className="flex items-center space-x-1">
                         <Coins className="h-4 w-4 text-slate-600" />
-                        <span className="font-bold text-slate-800">{tool.price} credits</span>
+                        <span className="font-bold text-slate-800">{tool.credit_cost} credits</span>
                       </div>
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Features</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {tool.features.map((feature, index) => (
-                    <li key={index} className="flex items-center space-x-2">
-                      <Zap className="h-4 w-4 text-green-500" />
-                      <span className="text-sm text-slate-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
               </CardContent>
             </Card>
           </div>
@@ -196,11 +284,11 @@ const ToolInterface = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Input</CardTitle>
-                <CardDescription>{tool.inputLabel}</CardDescription>
+                <CardDescription>Enter your content for {tool.name.toLowerCase()}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Textarea
-                  placeholder={tool.inputPlaceholder}
+                  placeholder={`Enter your text for ${tool.name.toLowerCase()}...`}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   className="min-h-32"
@@ -222,7 +310,7 @@ const ToolInterface = () => {
                     ) : (
                       <>
                         <Zap className="h-4 w-4 mr-2" />
-                        Generate ({tool.price} credits)
+                        Generate ({tool.credit_cost} credits)
                       </>
                     )}
                   </Button>

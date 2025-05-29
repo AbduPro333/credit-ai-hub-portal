@@ -31,24 +31,28 @@ const Dashboard = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [tools, setTools] = useState<Tool[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
   
-  const { user, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated (after auth loading is complete)
   useEffect(() => {
-    if (!user && !loading) {
-      navigate("/auth");
+    console.log('Dashboard: auth state changed', { user, authLoading });
+    if (!authLoading && !user) {
+      console.log('Redirecting to login');
+      navigate("/login");
     }
-  }, [user, loading, navigate]);
+  }, [user, authLoading, navigate]);
 
   // Fetch tools and user data
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
 
+      console.log('Fetching data for user:', user.id);
+      
       try {
         // Fetch tools
         const { data: toolsData, error: toolsError } = await supabase
@@ -56,7 +60,11 @@ const Dashboard = () => {
           .select("*")
           .order("rating", { ascending: false });
 
-        if (toolsError) throw toolsError;
+        if (toolsError) {
+          console.error('Tools fetch error:', toolsError);
+          throw toolsError;
+        }
+        console.log('Tools data:', toolsData);
         setTools(toolsData || []);
 
         // Fetch user profile
@@ -66,26 +74,56 @@ const Dashboard = () => {
           .eq("id", user.id)
           .single();
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Profile fetch error:', profileError);
+          throw profileError;
+        }
+        console.log('Profile data:', profileData);
         setUserProfile(profileData);
       } catch (error: any) {
+        console.error('Data fetch error:', error);
         toast({
           title: "Error",
           description: "Failed to load data: " + error.message,
           variant: "destructive",
         });
       } finally {
-        setLoading(false);
+        setDataLoading(false);
       }
     };
 
-    fetchData();
+    if (user) {
+      fetchData();
+    }
   }, [user, toast]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
   };
+
+  // Show loading while auth is being determined
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render if user is not authenticated (will redirect)
+  if (!user) {
+    return null;
+  }
+
+  // Show loading while data is being fetched
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-xl">Loading dashboard...</div>
+      </div>
+    );
+  }
 
   const categories = ["all", ...Array.from(new Set(tools.map(tool => tool.category)))];
 
@@ -95,14 +133,6 @@ const Dashboard = () => {
     const matchesCategory = selectedCategory === "all" || tool.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-50">
