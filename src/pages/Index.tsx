@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,12 +43,12 @@ const Index = () => {
               <span className="text-xl font-bold text-slate-800">AI Hub</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Link to="/login">
+              <Link to="/auth">
                 <Button variant="ghost" className="text-slate-600 hover:text-slate-800">
                   Sign In
                 </Button>
               </Link>
-              <Link to="/register">
+              <Link to="/auth">
                 <Button className="bg-slate-800 hover:bg-slate-700">
                   Get Started
                 </Button>
@@ -75,15 +74,17 @@ const Index = () => {
             Pay only for what you use with transparent pricing and instant results.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/dashboard">
+            <Link to="/auth">
               <Button size="lg" className="bg-slate-800 hover:bg-slate-700 text-white px-8">
-                Explore Marketplace
+                Start Free Trial
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <Button size="lg" variant="outline" className="border-slate-300 text-slate-700">
-              View Pricing
-            </Button>
+            <Link to="/pricing">
+              <Button size="lg" variant="outline" className="border-slate-300 text-slate-700">
+                View Pricing
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -193,7 +194,7 @@ const Index = () => {
           <p className="text-xl text-slate-300 mb-8">
             Join thousands of users already using AI Hub to supercharge their workflow
           </p>
-          <Link to="/register">
+          <Link to="/auth">
             <Button size="lg" className="bg-white text-slate-800 hover:bg-slate-100 px-8">
               Start Your Journey
               <ArrowRight className="ml-2 h-4 w-4" />

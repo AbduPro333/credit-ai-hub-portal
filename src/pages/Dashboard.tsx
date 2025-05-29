@@ -1,99 +1,108 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Star, Users, Coins, Filter, Grid, List } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Search, Star, Users, Coins, Filter, Grid, List, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/components/ui/use-toast";
+
+interface Tool {
+  id: string;
+  name: string;
+  description: string;
+  credit_cost: number;
+  category: string;
+  rating: number;
+  total_uses: number;
+}
+
+interface UserProfile {
+  credits: number;
+}
 
 const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [tools, setTools] = useState<Tool[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  // Mock user data - this will come from Supabase
-  const userCredits = 250;
-
-  const aiTools = [
-    {
-      id: 1,
-      name: "AI Content Generator",
-      description: "Create high-quality blog posts, articles, and marketing copy with advanced AI",
-      category: "Writing",
-      rating: 4.9,
-      users: 12500,
-      price: 5,
-      image: "📝",
-      tags: ["Content", "Marketing", "SEO"]
-    },
-    {
-      id: 2,
-      name: "Image Enhancer Pro",
-      description: "Upscale and enhance images using state-of-the-art AI algorithms",
-      category: "Image",
-      rating: 4.8,
-      users: 8300,
-      price: 3,
-      image: "🖼️",
-      tags: ["Enhancement", "Upscaling", "Photo"]
-    },
-    {
-      id: 3,
-      name: "Code Assistant",
-      description: "AI-powered code generation, debugging, and optimization for developers",
-      category: "Development",
-      rating: 4.9,
-      users: 15200,
-      price: 8,
-      image: "💻",
-      tags: ["Coding", "Debug", "Optimization"]
-    },
-    {
-      id: 4,
-      name: "Voice Synthesizer",
-      description: "Generate natural-sounding voice overs and speech from text",
-      category: "Audio",
-      rating: 4.7,
-      users: 6800,
-      price: 4,
-      image: "🎤",
-      tags: ["Voice", "TTS", "Audio"]
-    },
-    {
-      id: 5,
-      name: "Data Analyzer",
-      description: "Extract insights and patterns from complex datasets using AI",
-      category: "Analytics",
-      rating: 4.6,
-      users: 4200,
-      price: 6,
-      image: "📊",
-      tags: ["Data", "Analytics", "Insights"]
-    },
-    {
-      id: 6,
-      name: "Language Translator",
-      description: "Translate text between 100+ languages with context awareness",
-      category: "Language",
-      rating: 4.8,
-      users: 9600,
-      price: 2,
-      image: "🌐",
-      tags: ["Translation", "Language", "Global"]
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!user && !loading) {
+      navigate("/auth");
     }
-  ];
+  }, [user, loading, navigate]);
 
-  const categories = ["all", "Writing", "Image", "Development", "Audio", "Analytics", "Language"];
+  // Fetch tools and user data
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user) return;
 
-  const filteredTools = aiTools.filter(tool => {
+      try {
+        // Fetch tools
+        const { data: toolsData, error: toolsError } = await supabase
+          .from("tools")
+          .select("*")
+          .order("rating", { ascending: false });
+
+        if (toolsError) throw toolsError;
+        setTools(toolsData || []);
+
+        // Fetch user profile
+        const { data: profileData, error: profileError } = await supabase
+          .from("users")
+          .select("credits")
+          .eq("id", user.id)
+          .single();
+
+        if (profileError) throw profileError;
+        setUserProfile(profileData);
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: "Failed to load data: " + error.message,
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user, toast]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  const categories = ["all", ...Array.from(new Set(tools.map(tool => tool.category)))];
+
+  const filteredTools = tools.filter(tool => {
     const matchesSearch = tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         tool.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         tool.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+                         tool.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "all" || tool.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -107,12 +116,17 @@ const Dashboard = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 bg-slate-100 px-3 py-2 rounded-lg">
                 <Coins className="h-4 w-4 text-slate-600" />
-                <span className="font-medium text-slate-800">{userCredits} credits</span>
+                <span className="font-medium text-slate-800">
+                  {userProfile?.credits || 0} credits
+                </span>
               </div>
               <Link to="/pricing">
                 <Button variant="outline" size="sm">Buy Credits</Button>
               </Link>
-              <Button variant="ghost" size="sm">Profile</Button>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </div>
@@ -121,7 +135,9 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome back!</h1>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            Welcome back, {user?.email?.split('@')[0]}!
+          </h1>
           <p className="text-slate-600">Discover and use powerful AI tools to enhance your workflow</p>
         </div>
 
@@ -173,7 +189,7 @@ const Dashboard = () => {
         {/* Results Count */}
         <div className="mb-6">
           <p className="text-slate-600">
-            Showing {filteredTools.length} of {aiTools.length} tools
+            Showing {filteredTools.length} of {tools.length} tools
           </p>
         </div>
 
@@ -186,7 +202,9 @@ const Dashboard = () => {
             <Card key={tool.id} className="hover:shadow-lg transition-shadow cursor-pointer group">
               <CardHeader>
                 <div className="flex justify-between items-start mb-2">
-                  <div className="text-2xl">{tool.image}</div>
+                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">
+                    {tool.category}
+                  </Badge>
                   <div className="flex items-center space-x-1">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                     <span className="text-sm text-slate-600">{tool.rating}</span>
@@ -201,20 +219,13 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    {tool.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
                   <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-2 text-sm text-slate-600">
                       <Users className="h-4 w-4" />
-                      <span>{tool.users.toLocaleString()} users</span>
+                      <span>{tool.total_uses.toLocaleString()} uses</span>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-bold text-slate-800">{tool.price} credits</div>
+                      <div className="text-lg font-bold text-slate-800">{tool.credit_cost} credits</div>
                       <Link to={`/tool/${tool.id}`}>
                         <Button size="sm" className="mt-2">
                           Use Tool
