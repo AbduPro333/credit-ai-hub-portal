@@ -1,402 +1,317 @@
 import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Coins, Star, Users, Zap, Download, Copy } from "lucide-react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Play, Coins, CreditCard } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/components/ui/use-toast";
+import { handleInsufficientCredits } from "@/utils/payment";
 
 interface Tool {
   id: string;
   name: string;
   description: string;
   credit_cost: number;
+  input_labels: string[];
+  example_input: string;
   category: string;
-  rating: number;
-  total_uses: number;
 }
 
-interface UserProfile {
-  credits: number;
-}
+const mockTools: Tool[] = [
+  {
+    id: "summarizer",
+    name: "Text Summarizer",
+    description: "Summarize long articles into concise summaries.",
+    credit_cost: 1,
+    input_labels: ["Article Text"],
+    example_input: "Paste a long article here to summarize it.",
+    category: "Text",
+  },
+  {
+    id: "translator",
+    name: "Language Translator",
+    description: "Translate text between multiple languages.",
+    credit_cost: 2,
+    input_labels: ["Text to Translate", "Target Language"],
+    example_input: "Hello world|Spanish",
+    category: "Text",
+  },
+  {
+    id: "image-upscaler",
+    name: "Image Upscaler",
+    description: "Increase the resolution of low-quality images.",
+    credit_cost: 3,
+    input_labels: ["Image URL"],
+    example_input: "https://example.com/low-res-image.jpg",
+    category: "Image",
+  },
+];
 
 const ToolInterface = () => {
-  const { id } = useParams();
-  const { user, loading: authLoading } = useAuth();
-  const { toast } = useToast();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
-  const [tool, setTool] = useState<Tool | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const [tool, setTool] = useState<Tool | undefined>(undefined);
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Redirect if not authenticated
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/login");
-    }
-  }, [user, authLoading, navigate]);
+    const foundTool = mockTools.find((tool) => tool.id === id);
+    setTool(foundTool);
+  }, [id]);
 
-  // Fetch tool and user data
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!user || !id) return;
-
-      try {
-        // Fetch tool data
-        const { data: toolData, error: toolError } = await supabase
-          .from("tools")
-          .select("*")
-          .eq("id", id)
-          .single();
-
-        if (toolError) throw toolError;
-        setTool(toolData);
-
-        // Fetch user profile
-        const { data: profileData, error: profileError } = await supabase
-          .from("users")
-          .select("credits")
-          .eq("id", user.id)
-          .single();
-
-        if (profileError) throw profileError;
-        setUserProfile(profileData);
-      } catch (error: any) {
-        toast({
-          title: "Error",
-          description: "Failed to load tool: " + error.message,
-          variant: "destructive",
-        });
-        navigate("/dashboard");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user && id) {
-      fetchData();
-    }
-  }, [user, id, toast, navigate]);
-
-  const sendToWebhook = async (toolName: string, inputData: string) => {
-    try {
-      await fetch('https://eranclikview.app.n8n.cloud/webhook-test/saas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tool_name: toolName,
-          input_data: inputData,
-          user_id: user?.id,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-      console.log('Successfully sent data to webhook');
-    } catch (error) {
-      console.error('Failed to send data to webhook:', error);
-      // Don't show error to user as webhook failure shouldn't block the main functionality
-    }
-  };
-
-  const handleGenerate = async () => {
-    if (!input.trim() || !tool || !user) {
+  const handleRunTool = async () => {
+    if (!user) {
       toast({
-        title: "Input required",
-        description: "Please enter some text to process",
-        variant: "destructive"
+        title: "Authentication Required",
+        description: "Please log in to use this tool.",
+        variant: "destructive",
       });
       return;
     }
 
-    if (!userProfile || userProfile.credits < tool.credit_cost) {
-      toast({
-        title: "Insufficient credits",
-        description: (
-          <div className="space-y-2">
-            <p>You need {tool.credit_cost} credits to use this tool</p>
-            <a 
-              href="https://buy.stripe.com/test_3cI5kF6Ns9rM0fY8fAbQY00" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-            >
-              Buy 100 Credits ($20/month)
-            </a>
-          </div>
-        ),
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    setProgress(0);
+    setIsLoading(true);
     setOutput("");
 
-    // Send input data to webhook
-    await sendToWebhook(tool.name, input);
-
-    // Simulate AI processing with progress
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + 10;
-      });
-    }, 200);
-
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Generate mock response based on tool
-      const mockResponse = generateMockResponse(tool.name, input);
-      setOutput(mockResponse);
-      
-      // Deduct credits and create transaction
-      const newCredits = userProfile.credits - tool.credit_cost;
-      
-      // Update user credits
-      const { error: creditError } = await supabase
-        .from("users")
+      // Check user's current credits
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+
+      if (userError) {
+        throw new Error('Failed to check credits');
+      }
+
+      const currentCredits = userData?.credits || 0;
+      const requiredCredits = tool?.credit_cost || 1;
+
+      if (currentCredits < requiredCredits) {
+        const result = await handleInsufficientCredits();
+        if (result?.url) {
+          toast({
+            title: "Insufficient Credits",
+            description: `You need ${requiredCredits} credits but only have ${currentCredits}. Redirecting to purchase...`,
+            action: (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open(result.url, '_blank')}
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Buy Credits
+              </Button>
+            ),
+          });
+          // Open payment link in new tab
+          window.open(result.url, '_blank');
+        }
+        return;
+      }
+
+      // Simulate tool processing (replace with actual API call)
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Deduct credits from user's account
+      const newCredits = currentCredits - requiredCredits;
+      const { error: updateError } = await supabase
+        .from('users')
         .update({ credits: newCredits })
-        .eq("id", user.id);
+        .eq('id', user.id);
 
-      if (creditError) throw creditError;
+      if (updateError) {
+        throw new Error('Failed to deduct credits');
+      }
 
-      // Create transaction record
-      const { error: transactionError } = await supabase
-        .from("transactions")
-        .insert({
-          user_id: user.id,
-          tool_id: tool.id,
-          input_data: { input },
-          output_data: { output: mockResponse },
-          credits_used: tool.credit_cost
-        });
-
-      if (transactionError) throw transactionError;
-
-      // Update local state
-      setUserProfile({ credits: newCredits });
-      
+      // Simulate output
+      setOutput(`Tool output: ${input}`);
       toast({
-        title: "Content generated!",
-        description: `${tool.credit_cost} credits have been deducted from your balance`
+        title: "Success",
+        description: "Tool ran successfully!",
       });
-    } catch (error: any) {
+
+      // Fetch the updated user data to reflect the new credit balance
+      const { data: updatedUserData, error: updatedUserError } = await supabase
+        .from('users')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+
+      if (updatedUserError) {
+        console.error("Failed to fetch updated user data:", updatedUserError);
+      } else {
+        // Optionally, update the user context with the new credit balance
+        // setUser({ ...user, credits: updatedUserData?.credits || 0 });
+        console.log("Remaining credits:", updatedUserData?.credits || 0);
+      }
+
+    } catch (error) {
+      console.error('Error running tool:', error);
       toast({
         title: "Error",
-        description: "Failed to process request: " + error.message,
-        variant: "destructive"
+        description: "Failed to run the tool. Please try again.",
+        variant: "destructive",
       });
     } finally {
-      clearInterval(progressInterval);
-      setProgress(100);
-      setIsProcessing(false);
+      setIsLoading(false);
     }
   };
 
-  const generateMockResponse = (toolName: string, input: string) => {
-    const responses = {
-      "Text Summarizer": `Summary of "${input}":\n\n• Key Point 1: Main concept extracted from your text\n• Key Point 2: Secondary important information\n• Key Point 3: Supporting details and conclusions\n\nThis summary captures the essential information from your input text.`,
-      "Image Generator": `Image generation request: "${input}"\n\n[Generated Image Description]\nA high-quality AI-generated image based on your prompt. The image would show the elements you described with professional composition and lighting.\n\nNote: In a real implementation, this would return the actual generated image.`,
-      "Code Reviewer": `Code Review for: "${input}"\n\n✅ Strengths:\n• Good variable naming\n• Proper error handling\n• Clear function structure\n\n⚠️ Suggestions:\n• Consider adding type hints\n• Add unit tests\n• Optimize performance for large datasets\n\nOverall: Well-written code with room for minor improvements.`,
-      "Language Translator": `Translation of "${input}":\n\n[Original Text]\n${input}\n\n[Translated Text]\n[This would contain the actual translation in your target language]\n\nTranslation completed with high accuracy.`,
-      "SEO Optimizer": `SEO Analysis for: "${input}"\n\n📈 Recommendations:\n• Use primary keyword in title and first paragraph\n• Add meta description (150-160 characters)\n• Include internal and external links\n• Optimize for mobile readability\n• Add alt text to images\n\nSEO Score: 85/100 - Good optimization with room for improvement.`,
-      "Email Writer": `Professional Email for: "${input}"\n\nSubject: [Optimized Subject Line]\n\nDear [Recipient],\n\nI hope this email finds you well. I am writing to [purpose based on your input].\n\n[Body content tailored to your request]\n\nI look forward to your response.\n\nBest regards,\n[Your Name]`
-    };
-    
-    return responses[toolName as keyof typeof responses] || `Generated content for ${toolName}:\n\n${input}\n\nThis is AI-generated content based on your input.`;
-  };
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(output);
-    toast({
-      title: "Copied to clipboard",
-      description: "The generated content has been copied to your clipboard"
-    });
-  };
-
-  if (authLoading || loading) {
+  if (!tool) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="min-h-screen bg-slate-50">
+        <header className="bg-white border-b sticky top-0 z-40">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-4">
+                <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+                <div className="text-xl font-bold text-slate-800">Tool Not Found</div>
+              </div>
+            </div>
+          </div>
+        </header>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Tool Not Found</CardTitle>
+              <CardDescription>
+                The requested tool could not be found.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Please check the URL or return to the dashboard.</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
-  if (!user || !tool) {
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
       <header className="bg-white border-b sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <Link to="/dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
-                </Button>
-              </Link>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
               <div className="text-xl font-bold text-slate-800">{tool.name}</div>
+              <Badge className="ml-2">{tool.category}</Badge>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 bg-slate-100 px-3 py-2 rounded-lg">
-                <Coins className="h-4 w-4 text-slate-600" />
-                <span className="font-medium text-slate-800">{userProfile?.credits || 0} credits</span>
-              </div>
-              <Link to="/pricing">
-                <Button variant="outline" size="sm">Buy Credits</Button>
-              </Link>
+              {user && (
+                <div className="flex items-center space-x-2 bg-slate-100 px-3 py-2 rounded-lg">
+                  <Coins className="h-4 w-4 text-slate-600" />
+                  <span className="font-medium text-slate-800">{user?.user_metadata?.credits || 0} credits</span>
+                </div>
+              )}
+              <Button variant="ghost" size="sm">Profile</Button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Tool Info Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center space-x-3 mb-2">
-                  <div className="text-3xl">🔧</div>
-                  <div>
-                    <CardTitle className="text-slate-800">{tool.name}</CardTitle>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <div className="flex items-center space-x-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm text-slate-600">{tool.rating}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <Users className="h-4 w-4 text-slate-600" />
-                        <span className="text-sm text-slate-600">{tool.total_uses?.toLocaleString() || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <CardDescription>{tool.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary">{tool.category}</Badge>
-                  </div>
-                  <div className="bg-slate-50 p-4 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-slate-600">Cost per use</span>
-                      <div className="flex items-center space-x-1">
-                        <Coins className="h-4 w-4 text-slate-600" />
-                        <span className="font-bold text-slate-800">{tool.credit_cost} credits</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>{tool.name}</CardTitle>
+            <CardDescription>
+              {tool.description}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                  Credit Cost
+                </h3>
+                <p className="text-sm text-slate-600">
+                  {tool.credit_cost} credits per run
+                </p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                  Category
+                </h3>
+                <p className="text-sm text-slate-600">{tool.category}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Main Interface */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Input Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Input</CardTitle>
-                <CardDescription>Enter your content for {tool.name.toLowerCase()}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  placeholder={`Enter your text for ${tool.name.toLowerCase()}...`}
+        {/* Input Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Input</CardTitle>
+            <CardDescription>
+              Configure your input parameters below
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {tool.input_labels.map((label, index) => (
+              <div key={index} className="space-y-2">
+                <Label htmlFor={`input-${index}`}>{label}</Label>
+                <Input
+                  id={`input-${index}`}
+                  placeholder={tool.example_input.split('|')[index] || tool.example_input}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  className="min-h-32"
                 />
-                <div className="flex justify-between items-center mt-4">
-                  <div className="text-sm text-slate-600">
-                    {input.length > 0 && `${input.length} characters`}
-                  </div>
-                  <Button 
-                    onClick={handleGenerate} 
-                    disabled={isProcessing || !input.trim()}
-                    className="bg-slate-800 hover:bg-slate-700"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="h-4 w-4 mr-2" />
-                        Generate ({tool.credit_cost} credits)
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            ))}
 
-            {/* Processing Progress */}
-            {isProcessing && (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Processing your request...</span>
-                      <span>{progress}%</span>
-                    </div>
-                    <Progress value={progress} className="w-full" />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <Button 
+              onClick={handleRunTool}
+              disabled={isLoading || !input.trim()}
+              className="w-full bg-slate-800 hover:bg-slate-700"
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 mr-2" />
+                  Run Tool ({tool?.credit_cost || 1} credits)
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
 
-            {/* Output Section */}
-            {output && (
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Generated Content</CardTitle>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" onClick={copyToClipboard}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-slate-50 p-4 rounded-lg">
-                    <pre className="whitespace-pre-wrap font-sans text-sm text-slate-700">
-                      {output}
-                    </pre>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
+        {/* Output Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Output</CardTitle>
+            <CardDescription>
+              Result of the tool will be displayed here
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              placeholder="Output will appear here..."
+              value={output}
+              readOnly
+              className="min-h-[100px]"
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

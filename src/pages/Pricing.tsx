@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,9 +5,29 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Check, ArrowLeft, Coins, CreditCard, Star } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const Pricing = () => {
   const [isAnnual, setIsAnnual] = useState(false);
+  const { user } = useAuth();
+
+  const handleGetStarted = async () => {
+    if (!user) {
+      // Redirect to login if not authenticated
+      window.location.href = '/login';
+      return;
+    }
+
+    try {
+      const result = await handleInsufficientCredits();
+      if (result?.url) {
+        // Open Stripe checkout in new tab
+        window.open(result.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+    }
+  };
 
   const plans = [
     {
@@ -23,7 +42,7 @@ const Pricing = () => {
         "Basic support",
         "Monthly billing"
       ],
-      paymentLink: "https://buy.stripe.com/test_3cI5kF6Ns9rM0fY8fAbQY00"
+      onGetStarted: handleGetStarted
     },
     {
       name: "Pro",
@@ -152,18 +171,14 @@ const Pricing = () => {
                     </li>
                   ))}
                 </ul>
-                {plan.paymentLink ? (
-                  <a 
-                    href={plan.paymentLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full"
+                {plan.onGetStarted ? (
+                  <Button 
+                    className="w-full bg-slate-800 hover:bg-slate-700"
+                    onClick={plan.onGetStarted}
                   >
-                    <Button className="w-full bg-slate-800 hover:bg-slate-700">
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Get Started
-                    </Button>
-                  </a>
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Get Started
+                  </Button>
                 ) : (
                   <Button 
                     className="w-full"

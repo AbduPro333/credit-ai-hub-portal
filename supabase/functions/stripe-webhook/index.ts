@@ -43,27 +43,82 @@ serve(async (req) => {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       const customerEmail = session.customer_details?.email;
+      const userId = session.metadata?.user_id; // Get user_id from metadata
       
-      console.log('Processing completed checkout for:', customerEmail);
+      console.log('Processing completed checkout for:', customerEmail, 'User ID:', userId);
 
-      if (!customerEmail) {
-        console.error('No customer email found in session');
-        return new Response('No customer email', { status: 400 });
+      if (!customerEmail && !userId) {
+        console.error('No customer email or user ID found in session');
+        return new Response('No customer identifier', { status: 400 });
       }
 
-      // Find the user by email
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', customerEmail)
-        .single();
+      let user;
+      
+      // Try to find user by user_id first (preferred), then by email
+      if (userId) {
+        console.log('Looking up user by ID:', userId);
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single();
+          
+        if (userError) {
+          console.error('User not found by ID:', userId, userError);
+        } else {
+          user = userData;
+          console.log('Found user by ID:', user.id);
+        }
+      }
+      
+      // Fallback to email lookup if user_id lookup failed
+      if (!user && customerEmail) {
+        console.log('Looking up user by email:', customerEmail);
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', customerEmail)
+          .single();
+          
+        if (userError) {
+          console.error('User not found by email:', customerEmail, userError);
+          
+          // Try to find user in auth.users and create in public.users
+          const { data: authUser, error: authError } = await supabase.auth.admin.getUserByEmail(customerEmail);
+          
+          if (authUser?.user && !authError) {
+            console.log('Found user in auth, creating in public.users');
+            const { data: newUser, error: createError } = await supabase
+              .from('users')
+              .insert({
+                id: authUser.user.id,
+                email: customerEmail,
+                credits: 0
+              })
+              .select()
+              .single();
+              
+            if (createError) {
+              console.error('Error creating user:', createError);
+              return new Response('Error creating user', { status: 500 });
+            }
+            
+            user = newUser;
+            console.log('Created new user:', user.id);
+          } else {
+            console.error('User not found in auth either:', customerEmail);
+            return new Response('User not found', { status: 404 });
+          }
+        } else {
+          user = userData;
+          console.log('Found user by email:', user.id);
+        }
+      }
 
-      if (userError || !user) {
-        console.error('User not found for email:', customerEmail);
+      if (!user) {
+        console.error('Could not find or create user');
         return new Response('User not found', { status: 404 });
       }
-
-      console.log('Found user:', user.id);
 
       // Add 100 credits to the user's account
       const newCredits = user.credits + 100;
