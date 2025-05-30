@@ -15,21 +15,22 @@ const Pricing = () => {
       name: "Starter",
       description: "Perfect for trying out AI tools",
       credits: 100,
-      price: isAnnual ? 8 : 10,
-      popular: false,
+      price: 20,
+      popular: true,
       features: [
         "100 AI credits",
         "Access to all tools",
         "Basic support",
-        "30-day credit expiry"
-      ]
+        "Monthly billing"
+      ],
+      paymentLink: "https://buy.stripe.com/test_3cI5kF6Ns9rM0fY8fAbQY00"
     },
     {
       name: "Pro",
       description: "Best for regular users",
       credits: 500,
       price: isAnnual ? 32 : 40,
-      popular: true,
+      popular: false,
       features: [
         "500 AI credits",
         "Access to all tools",
@@ -134,7 +135,7 @@ const Pricing = () => {
                   <div className="text-4xl font-bold text-slate-900">
                     ${plan.price}
                     <span className="text-lg font-normal text-slate-600">
-                      /{isAnnual ? 'year' : 'month'}
+                      /month
                     </span>
                   </div>
                   <div className="text-sm text-slate-600 mt-1">
@@ -151,13 +152,28 @@ const Pricing = () => {
                     </li>
                   ))}
                 </ul>
-                <Button 
-                  className={`w-full ${plan.popular ? 'bg-slate-800 hover:bg-slate-700' : ''}`}
-                  variant={plan.popular ? 'default' : 'outline'}
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Get Started
-                </Button>
+                {plan.paymentLink ? (
+                  <a 
+                    href={plan.paymentLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full"
+                  >
+                    <Button className="w-full bg-slate-800 hover:bg-slate-700">
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Get Started
+                    </Button>
+                  </a>
+                ) : (
+                  <Button 
+                    className="w-full"
+                    variant="outline"
+                    disabled
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Coming Soon
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}

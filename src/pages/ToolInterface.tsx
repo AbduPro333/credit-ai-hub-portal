@@ -121,7 +121,19 @@ const ToolInterface = () => {
     if (!userProfile || userProfile.credits < tool.credit_cost) {
       toast({
         title: "Insufficient credits",
-        description: `You need ${tool.credit_cost} credits to use this tool`,
+        description: (
+          <div className="space-y-2">
+            <p>You need {tool.credit_cost} credits to use this tool</p>
+            <a 
+              href="https://buy.stripe.com/test_3cI5kF6Ns9rM0fY8fAbQY00" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+            >
+              Buy 100 Credits ($20/month)
+            </a>
+          </div>
+        ),
         variant: "destructive"
       });
       return;
