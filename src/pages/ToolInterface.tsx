@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -88,6 +87,27 @@ const ToolInterface = () => {
     }
   }, [user, id, toast, navigate]);
 
+  const sendToWebhook = async (toolName: string, inputData: string) => {
+    try {
+      await fetch('https://eranclikview.app.n8n.cloud/webhook-test/saas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tool_name: toolName,
+          input_data: inputData,
+          user_id: user?.id,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+      console.log('Successfully sent data to webhook');
+    } catch (error) {
+      console.error('Failed to send data to webhook:', error);
+      // Don't show error to user as webhook failure shouldn't block the main functionality
+    }
+  };
+
   const handleGenerate = async () => {
     if (!input.trim() || !tool || !user) {
       toast({
@@ -110,6 +130,9 @@ const ToolInterface = () => {
     setIsProcessing(true);
     setProgress(0);
     setOutput("");
+
+    // Send input data to webhook
+    await sendToWebhook(tool.name, input);
 
     // Simulate AI processing with progress
     const progressInterval = setInterval(() => {
