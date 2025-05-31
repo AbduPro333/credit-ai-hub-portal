@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Check, ArrowLeft, Coins, CreditCard, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { handleInsufficientCredits } from "@/utils/payment";
 
 const Pricing = () => {
   const [isAnnual, setIsAnnual] = useState(false);
