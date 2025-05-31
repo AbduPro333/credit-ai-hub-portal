@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,10 +7,34 @@ import { Check, ArrowLeft, Coins, CreditCard, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { handleInsufficientCredits } from "@/utils/payment";
+import { supabase } from "@/integrations/supabase/client";
 
 const Pricing = () => {
   const [isAnnual, setIsAnnual] = useState(false);
+  const [userCredits, setUserCredits] = useState(0);
   const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchUserCredits = async () => {
+      if (!user) return;
+
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user credits:', error);
+      } else {
+        setUserCredits(userData?.credits || 0);
+      }
+    };
+
+    if (user) {
+      fetchUserCredits();
+    }
+  }, [user]);
 
   const handleGetStarted = async () => {
     if (!user) {
@@ -105,7 +129,7 @@ const Pricing = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 bg-slate-100 px-3 py-2 rounded-lg">
                 <Coins className="h-4 w-4 text-slate-600" />
-                <span className="font-medium text-slate-800">250 credits</span>
+                <span className="font-medium text-slate-800">{userCredits} credits</span>
               </div>
               <Button variant="ghost" size="sm">Profile</Button>
             </div>

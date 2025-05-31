@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,40 +18,8 @@ interface Tool {
   name: string;
   description: string;
   credit_cost: number;
-  input_labels: string[];
-  example_input: string;
   category: string;
 }
-
-const mockTools: Tool[] = [
-  {
-    id: "summarizer",
-    name: "Text Summarizer",
-    description: "Summarize long articles into concise summaries.",
-    credit_cost: 1,
-    input_labels: ["Article Text"],
-    example_input: "Paste a long article here to summarize it.",
-    category: "Text",
-  },
-  {
-    id: "translator",
-    name: "Language Translator",
-    description: "Translate text between multiple languages.",
-    credit_cost: 2,
-    input_labels: ["Text to Translate", "Target Language"],
-    example_input: "Hello world|Spanish",
-    category: "Text",
-  },
-  {
-    id: "image-upscaler",
-    name: "Image Upscaler",
-    description: "Increase the resolution of low-quality images.",
-    credit_cost: 3,
-    input_labels: ["Image URL"],
-    example_input: "https://example.com/low-res-image.jpg",
-    category: "Image",
-  },
-];
 
 const ToolInterface = () => {
   const { id } = useParams<{ id: string }>();
@@ -62,11 +31,50 @@ const ToolInterface = () => {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userCredits, setUserCredits] = useState(0);
 
   useEffect(() => {
-    const foundTool = mockTools.find((tool) => tool.id === id);
-    setTool(foundTool);
+    const fetchTool = async () => {
+      if (!id) return;
+      
+      const { data: toolData, error } = await supabase
+        .from('tools')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching tool:', error);
+        setTool(undefined);
+      } else {
+        setTool(toolData);
+      }
+    };
+
+    fetchTool();
   }, [id]);
+
+  useEffect(() => {
+    const fetchUserCredits = async () => {
+      if (!user) return;
+
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('credits')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user credits:', error);
+      } else {
+        setUserCredits(userData?.credits || 0);
+      }
+    };
+
+    if (user) {
+      fetchUserCredits();
+    }
+  }, [user]);
 
   const handleRunTool = async () => {
     if (!user) {
@@ -82,26 +90,14 @@ const ToolInterface = () => {
     setOutput("");
 
     try {
-      // Check user's current credits
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('credits')
-        .eq('id', user.id)
-        .single();
-
-      if (userError) {
-        throw new Error('Failed to check credits');
-      }
-
-      const currentCredits = userData?.credits || 0;
       const requiredCredits = tool?.credit_cost || 1;
 
-      if (currentCredits < requiredCredits) {
+      if (userCredits < requiredCredits) {
         const result = await handleInsufficientCredits();
         if (result?.url) {
           toast({
             title: "Insufficient Credits",
-            description: `You need ${requiredCredits} credits but only have ${currentCredits}. Redirecting to purchase...`,
+            description: `You need ${requiredCredits} credits but only have ${userCredits}. Redirecting to purchase...`,
             action: (
               <Button 
                 variant="outline" 
@@ -113,7 +109,6 @@ const ToolInterface = () => {
               </Button>
             ),
           });
-          // Open payment link in new tab
           window.open(result.url, '_blank');
         }
         return;
@@ -123,7 +118,7 @@ const ToolInterface = () => {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Deduct credits from user's account
-      const newCredits = currentCredits - requiredCredits;
+      const newCredits = userCredits - requiredCredits;
       const { error: updateError } = await supabase
         .from('users')
         .update({ credits: newCredits })
@@ -133,27 +128,15 @@ const ToolInterface = () => {
         throw new Error('Failed to deduct credits');
       }
 
+      // Update local credits state
+      setUserCredits(newCredits);
+
       // Simulate output
       setOutput(`Tool output: ${input}`);
       toast({
         title: "Success",
         description: "Tool ran successfully!",
       });
-
-      // Fetch the updated user data to reflect the new credit balance
-      const { data: updatedUserData, error: updatedUserError } = await supabase
-        .from('users')
-        .select('credits')
-        .eq('id', user.id)
-        .single();
-
-      if (updatedUserError) {
-        console.error("Failed to fetch updated user data:", updatedUserError);
-      } else {
-        // Optionally, update the user context with the new credit balance
-        // setUser({ ...user, credits: updatedUserData?.credits || 0 });
-        console.log("Remaining credits:", updatedUserData?.credits || 0);
-      }
 
     } catch (error) {
       console.error('Error running tool:', error);
@@ -217,7 +200,7 @@ const ToolInterface = () => {
               {user && (
                 <div className="flex items-center space-x-2 bg-slate-100 px-3 py-2 rounded-lg">
                   <Coins className="h-4 w-4 text-slate-600" />
-                  <span className="font-medium text-slate-800">{user?.user_metadata?.credits || 0} credits</span>
+                  <span className="font-medium text-slate-800">{userCredits} credits</span>
                 </div>
               )}
               <Button variant="ghost" size="sm">Profile</Button>
@@ -263,17 +246,15 @@ const ToolInterface = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {tool.input_labels.map((label, index) => (
-              <div key={index} className="space-y-2">
-                <Label htmlFor={`input-${index}`}>{label}</Label>
-                <Input
-                  id={`input-${index}`}
-                  placeholder={tool.example_input.split('|')[index] || tool.example_input}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                />
-              </div>
-            ))}
+            <div className="space-y-2">
+              <Label htmlFor="input">Input Text</Label>
+              <Input
+                id="input"
+                placeholder="Enter your input here..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+              />
+            </div>
 
             <Button 
               onClick={handleRunTool}

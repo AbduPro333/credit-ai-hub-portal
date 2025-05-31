@@ -43,7 +43,7 @@ serve(async (req) => {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       const customerEmail = session.customer_details?.email;
-      const userId = session.metadata?.user_id; // Get user_id from metadata
+      const userId = session.client_reference_id; // Get user_id from client_reference_id
       
       console.log('Processing completed checkout for:', customerEmail, 'User ID:', userId);
 
@@ -83,15 +83,13 @@ serve(async (req) => {
         if (userError) {
           console.error('User not found by email:', customerEmail, userError);
           
-          // Try to find user in auth.users and create in public.users
-          const { data: authUser, error: authError } = await supabase.auth.admin.getUserByEmail(customerEmail);
-          
-          if (authUser?.user && !authError) {
-            console.log('Found user in auth, creating in public.users');
+          // If user not found in public.users, create them
+          if (userId) {
+            console.log('Creating new user record for ID:', userId);
             const { data: newUser, error: createError } = await supabase
               .from('users')
               .insert({
-                id: authUser.user.id,
+                id: userId,
                 email: customerEmail,
                 credits: 0
               })
@@ -106,8 +104,8 @@ serve(async (req) => {
             user = newUser;
             console.log('Created new user:', user.id);
           } else {
-            console.error('User not found in auth either:', customerEmail);
-            return new Response('User not found', { status: 404 });
+            console.error('Cannot create user without user ID');
+            return new Response('User not found and cannot create without ID', { status: 404 });
           }
         } else {
           user = userData;
