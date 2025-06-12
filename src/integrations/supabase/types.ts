@@ -50,36 +50,99 @@ export type Database = {
           },
         ]
       }
+      tool_executions: {
+        Row: {
+          created_at: string
+          credits_used: number | null
+          id: string
+          input_data: Json
+          output_data: Json | null
+          status: string | null
+          tool_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_used?: number | null
+          id?: string
+          input_data: Json
+          output_data?: Json | null
+          status?: string | null
+          tool_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_used?: number | null
+          id?: string
+          input_data?: Json
+          output_data?: Json | null
+          status?: string | null
+          tool_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tool_executions_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tool_executions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tools: {
         Row: {
+          api_endpoint: string | null
           category: string | null
           created_at: string
           credit_cost: number
           description: string
+          execution_type: string | null
           id: string
+          input_schema: Json | null
           name: string
+          output_schema: Json | null
           rating: number | null
           total_uses: number | null
           updated_at: string
         }
         Insert: {
+          api_endpoint?: string | null
           category?: string | null
           created_at?: string
           credit_cost?: number
           description: string
+          execution_type?: string | null
           id?: string
+          input_schema?: Json | null
           name: string
+          output_schema?: Json | null
           rating?: number | null
           total_uses?: number | null
           updated_at?: string
         }
         Update: {
+          api_endpoint?: string | null
           category?: string | null
           created_at?: string
           credit_cost?: number
           description?: string
+          execution_type?: string | null
           id?: string
+          input_schema?: Json | null
           name?: string
+          output_schema?: Json | null
           rating?: number | null
           total_uses?: number | null
           updated_at?: string
