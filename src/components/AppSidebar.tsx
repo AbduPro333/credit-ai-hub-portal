@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDown, ChevronRight, BarChart3, Settings, CreditCard } from "lucide-react";
@@ -19,7 +18,7 @@ interface Service {
   href?: string;
 }
 
-// Static services that don't have tools
+// Static services that don't have tools - Insights at the top
 const staticServices = [
   {
     id: "insights",
@@ -95,8 +94,8 @@ export const AppSidebar = () => {
           tools: tools,
         }));
 
-        // Combine dynamic services with static services
-        setServices([...dynamicServices, ...staticServices]);
+        // Combine static services (with Insights first) with dynamic services
+        setServices([...staticServices, ...dynamicServices]);
       } catch (error) {
         console.error('Error fetching services and tools:', error);
       } finally {
