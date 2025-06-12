@@ -37,21 +37,21 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b sticky top-0 z-40">
+      <header className="bg-card/95 backdrop-blur-sm border-b border-border sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
-              <Sparkles className="h-8 w-8 text-slate-800" />
-              <span className="text-2xl font-bold text-slate-800">AI Hub</span>
+              <Sparkles className="h-8 w-8 text-primary" />
+              <span className="text-2xl font-bold text-foreground">AI Hub</span>
             </div>
             <div className="flex items-center space-x-4">
               <Link to="/login">
-                <Button variant="ghost">Sign In</Button>
+                <Button variant="ghost" className="text-foreground hover:text-primary">Sign In</Button>
               </Link>
               <Link to="/signup">
-                <Button>Get Started</Button>
+                <Button className="bg-primary hover:bg-primary/90">Get Started</Button>
               </Link>
             </div>
           </div>
@@ -61,27 +61,27 @@ const Index = () => {
       {/* Hero Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
-          <Badge variant="secondary" className="mb-6 bg-slate-200 text-slate-700">
+          <Badge variant="secondary" className="mb-6 bg-primary/10 text-primary border-primary/20">
             🚀 Now with 50+ AI Tools Available
           </Badge>
-          <h1 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6">
+          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">
             Your AI Toolkit for
-            <span className="text-gradient bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="gradient-text">
               {" "}Everything
             </span>
           </h1>
-          <p className="text-xl text-slate-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
             Access powerful AI tools for content creation, image generation, code optimization, and more. 
             Pay only for what you use with our credit-based system.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/signup">
-              <Button size="lg" className="text-lg px-8 py-6">
+              <Button size="lg" className="text-lg px-8 py-6 bg-primary hover:bg-primary/90">
                 Start Creating <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link to="/pricing">
-              <Button variant="outline" size="lg" className="text-lg px-8 py-6">
+              <Button variant="outline" size="lg" className="text-lg px-8 py-6 border-border hover:bg-accent">
                 View Pricing
               </Button>
             </Link>
@@ -90,21 +90,21 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-card/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">Why Choose AI Hub?</h2>
-            <p className="text-xl text-slate-600">Everything you need to supercharge your workflow</p>
+            <h2 className="text-4xl font-bold text-foreground mb-4">Why Choose AI Hub?</h2>
+            <p className="text-xl text-muted-foreground">Everything you need to supercharge your workflow</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="text-center hover:shadow-lg transition-shadow">
+              <Card key={index} className="dashboard-card text-center hover:border-primary/50">
                 <CardHeader>
                   <div className="text-4xl mb-4">{feature.icon}</div>
-                  <CardTitle className="text-slate-800">{feature.title}</CardTitle>
+                  <CardTitle className="text-foreground">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-slate-600">
+                  <CardDescription className="text-muted-foreground">
                     {feature.description}
                   </CardDescription>
                 </CardContent>
@@ -118,26 +118,26 @@ const Index = () => {
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">Popular AI Tools</h2>
-            <p className="text-xl text-slate-600">Discover what our community loves most</p>
+            <h2 className="text-4xl font-bold text-foreground mb-4">Popular AI Tools</h2>
+            <p className="text-xl text-muted-foreground">Discover what our community loves most</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {tools.map((tool, index) => (
-              <Card key={index} className="hover:shadow-lg transition-shadow">
+              <Card key={index} className="dashboard-card hover:border-primary/50">
                 <CardHeader>
                   <div className="flex justify-between items-start mb-2">
-                    <CardTitle className="text-lg text-slate-800">{tool.name}</CardTitle>
+                    <CardTitle className="text-lg text-foreground">{tool.name}</CardTitle>
                     <div className="flex items-center space-x-1">
                       <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm text-slate-600">{tool.rating}</span>
+                      <span className="text-sm text-muted-foreground">{tool.rating}</span>
                     </div>
                   </div>
-                  <CardDescription>{tool.description}</CardDescription>
+                  <CardDescription className="text-muted-foreground">{tool.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-600">{tool.credits} credits</span>
-                    <Button size="sm" variant="outline">Try Now</Button>
+                    <span className="text-sm text-muted-foreground">{tool.credits} credits</span>
+                    <Button size="sm" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">Try Now</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -147,20 +147,20 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900 text-white">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-primary/10 to-blue-600/10 border-t border-border">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold mb-6">Ready to Transform Your Workflow?</h2>
-          <p className="text-xl text-slate-300 mb-8">
+          <h2 className="text-4xl font-bold text-foreground mb-6">Ready to Transform Your Workflow?</h2>
+          <p className="text-xl text-muted-foreground mb-8">
             Join thousands of creators, developers, and businesses using AI Hub to achieve more.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/signup">
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
+              <Button size="lg" className="text-lg px-8 py-6 bg-primary hover:bg-primary/90">
                 Start Free Trial <Zap className="ml-2 h-5 w-5" />
               </Button>
             </Link>
           </div>
-          <div className="mt-8 flex justify-center items-center space-x-8 text-slate-400">
+          <div className="mt-8 flex justify-center items-center space-x-8 text-muted-foreground">
             <div className="flex items-center space-x-2">
               <Users className="h-5 w-5" />
               <span>10,000+ Users</span>
@@ -178,21 +178,21 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white border-t py-12 px-4 sm:px-6 lg:px-8">
+      <footer className="bg-card/50 border-t border-border py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <Sparkles className="h-6 w-6 text-slate-800" />
-              <span className="text-xl font-bold text-slate-800">AI Hub</span>
+              <Sparkles className="h-6 w-6 text-primary" />
+              <span className="text-xl font-bold text-foreground">AI Hub</span>
             </div>
-            <div className="flex space-x-6 text-slate-600">
-              <Link to="/pricing" className="hover:text-slate-800">Pricing</Link>
-              <a href="#" className="hover:text-slate-800">Support</a>
-              <a href="#" className="hover:text-slate-800">Privacy</a>
-              <a href="#" className="hover:text-slate-800">Terms</a>
+            <div className="flex space-x-6 text-muted-foreground">
+              <Link to="/pricing" className="hover:text-primary">Pricing</Link>
+              <a href="#" className="hover:text-primary">Support</a>
+              <a href="#" className="hover:text-primary">Privacy</a>
+              <a href="#" className="hover:text-primary">Terms</a>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t text-center text-slate-500">
+          <div className="mt-8 pt-8 border-t border-border text-center text-muted-foreground">
             <p>&copy; 2024 AI Hub. All rights reserved.</p>
           </div>
         </div>

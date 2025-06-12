@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Play, Coins, CreditCard } from "lucide-react";
+import { ArrowLeft, Play, Coins, CreditCard, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -114,10 +113,8 @@ const ToolInterface = () => {
         return;
       }
 
-      // Simulate tool processing (replace with actual API call)
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Deduct credits from user's account
       const newCredits = userCredits - requiredCredits;
       const { error: updateError } = await supabase
         .from('users')
@@ -128,10 +125,7 @@ const ToolInterface = () => {
         throw new Error('Failed to deduct credits');
       }
 
-      // Update local credits state
       setUserCredits(newCredits);
-
-      // Simulate output
       setOutput(`Tool output: ${input}`);
       toast({
         title: "Success",
@@ -152,30 +146,30 @@ const ToolInterface = () => {
 
   if (!tool) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <header className="bg-white border-b sticky top-0 z-40">
+      <div className="min-h-screen bg-background">
+        <header className="bg-card/95 backdrop-blur-sm border-b border-border sticky top-0 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center space-x-4">
-                <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
+                <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Dashboard
                 </Button>
-                <div className="text-xl font-bold text-slate-800">Tool Not Found</div>
+                <div className="text-xl font-bold text-foreground">Tool Not Found</div>
               </div>
             </div>
           </div>
         </header>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <Card>
+          <Card className="dashboard-card">
             <CardHeader>
-              <CardTitle>Tool Not Found</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-foreground">Tool Not Found</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 The requested tool could not be found.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p>Please check the URL or return to the dashboard.</p>
+              <p className="text-muted-foreground">Please check the URL or return to the dashboard.</p>
             </CardContent>
           </Card>
         </div>
@@ -184,82 +178,84 @@ const ToolInterface = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b sticky top-0 z-40">
+    <div className="min-h-screen bg-background">
+      <header className="bg-card/95 backdrop-blur-sm border-b border-border sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
               </Button>
-              <div className="text-xl font-bold text-slate-800">{tool.name}</div>
-              <Badge className="ml-2">{tool.category}</Badge>
+              <Sparkles className="h-6 w-6 text-primary" />
+              <div className="text-xl font-bold text-foreground">{tool.name}</div>
+              <Badge className="bg-primary/10 text-primary border-primary/20">{tool.category}</Badge>
             </div>
             <div className="flex items-center space-x-4">
               {user && (
-                <div className="flex items-center space-x-2 bg-slate-100 px-3 py-2 rounded-lg">
-                  <Coins className="h-4 w-4 text-slate-600" />
-                  <span className="font-medium text-slate-800">{userCredits} credits</span>
+                <div className="metric-card flex items-center space-x-2 px-4 py-2">
+                  <Coins className="h-4 w-4 text-primary" />
+                  <span className="font-semibold text-primary">{userCredits}</span>
+                  <span className="text-muted-foreground text-sm">credits</span>
                 </div>
               )}
-              <Button variant="ghost" size="sm">Profile</Button>
             </div>
           </div>
         </div>
       </header>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card className="mb-8">
+        <Card className="dashboard-card mb-8">
           <CardHeader>
-            <CardTitle>{tool.name}</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-foreground">{tool.name}</CardTitle>
+            <CardDescription className="text-muted-foreground">
               {tool.description}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   Credit Cost
                 </h3>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-muted-foreground">
                   {tool.credit_cost} credits per run
                 </p>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   Category
                 </h3>
-                <p className="text-sm text-slate-600">{tool.category}</p>
+                <p className="text-sm text-muted-foreground">{tool.category}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Input Section */}
-        <Card className="mb-8">
+        <Card className="dashboard-card mb-8">
           <CardHeader>
-            <CardTitle>Input</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-foreground">Input</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Configure your input parameters below
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="input">Input Text</Label>
+              <Label htmlFor="input" className="text-foreground">Input Text</Label>
               <Input
                 id="input"
                 placeholder="Enter your input here..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                className="bg-background border-border focus:border-primary"
               />
             </div>
 
             <Button 
               onClick={handleRunTool}
               disabled={isLoading || !input.trim()}
-              className="w-full bg-slate-800 hover:bg-slate-700"
+              className="w-full bg-primary hover:bg-primary/90"
             >
               {isLoading ? (
                 <>
@@ -277,10 +273,10 @@ const ToolInterface = () => {
         </Card>
 
         {/* Output Section */}
-        <Card>
+        <Card className="dashboard-card">
           <CardHeader>
-            <CardTitle>Output</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-foreground">Output</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Result of the tool will be displayed here
             </CardDescription>
           </CardHeader>
@@ -289,7 +285,7 @@ const ToolInterface = () => {
               placeholder="Output will appear here..."
               value={output}
               readOnly
-              className="min-h-[100px]"
+              className="min-h-[100px] bg-background border-border"
             />
           </CardContent>
         </Card>
