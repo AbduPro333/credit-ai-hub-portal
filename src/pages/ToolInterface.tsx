@@ -11,13 +11,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { handleInsufficientCredits } from "@/utils/payment";
 import { DynamicForm } from "@/components/DynamicForm";
 import { DynamicOutput } from "@/components/DynamicOutput";
+import { Tables } from "@/integrations/supabase/types";
 
+// Define the tool interface with proper typing
 interface Tool {
   id: string;
   name: string;
   description: string;
   credit_cost: number;
-  category: string;
+  category: string | null;
   input_schema: {
     fields: Array<{
       name: string;
@@ -28,14 +30,14 @@ interface Tool {
       options?: string[];
       defaultValue?: any;
     }>;
-  };
+  } | null;
   output_schema: {
     type: string;
     label: string;
     format?: string;
-  };
-  execution_type: string;
-  api_endpoint?: string;
+  } | null;
+  execution_type: string | null;
+  api_endpoint?: string | null;
 }
 
 interface ToolExecution {
@@ -81,10 +83,34 @@ const ToolInterface = () => {
           console.error('Error fetching tool by ID:', idError);
           setTool(undefined);
         } else {
-          setTool(toolById);
+          // Convert the database row to our Tool interface
+          const convertedTool: Tool = {
+            id: toolById.id,
+            name: toolById.name,
+            description: toolById.description,
+            credit_cost: toolById.credit_cost,
+            category: toolById.category,
+            input_schema: toolById.input_schema as Tool['input_schema'],
+            output_schema: toolById.output_schema as Tool['output_schema'],
+            execution_type: toolById.execution_type,
+            api_endpoint: toolById.api_endpoint,
+          };
+          setTool(convertedTool);
         }
       } else {
-        setTool(toolData);
+        // Convert the database row to our Tool interface
+        const convertedTool: Tool = {
+          id: toolData.id,
+          name: toolData.name,
+          description: toolData.description,
+          credit_cost: toolData.credit_cost,
+          category: toolData.category,
+          input_schema: toolData.input_schema as Tool['input_schema'],
+          output_schema: toolData.output_schema as Tool['output_schema'],
+          execution_type: toolData.execution_type,
+          api_endpoint: toolData.api_endpoint,
+        };
+        setTool(convertedTool);
       }
     };
 
