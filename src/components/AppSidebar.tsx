@@ -1,8 +1,9 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronDown, ChevronRight, BarChart3, Users, MessageSquare, Settings, CreditCard } from "lucide-react";
+import { ChevronDown, ChevronRight, BarChart3, Settings, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Tool {
   id: string;
@@ -18,17 +19,8 @@ interface Service {
   href?: string;
 }
 
-const services: Service[] = [
-  {
-    id: "lead-generation",
-    name: "Lead Generation",
-    icon: Users,
-    tools: [
-      { id: "email-writer", name: "Email Writer", href: "/tool/email-writer" },
-      { id: "social-media", name: "Social Media", href: "/tool/social-media" },
-      { id: "content-creator", name: "Content Creator", href: "/tool/content-creator" },
-    ],
-  },
+// Static services that don't have tools
+const staticServices = [
   {
     id: "insights",
     name: "Insights",
@@ -52,9 +44,68 @@ const services: Service[] = [
   },
 ];
 
+// Icon mapping for different categories
+const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  "lead generation": BarChart3,
+  "content creation": Settings,
+  "analytics": BarChart3,
+  // Add more mappings as needed
+};
+
 export const AppSidebar = () => {
+  const [services, setServices] = useState<Service[]>([]);
   const [expandedServices, setExpandedServices] = useState<string[]>(["lead-generation"]);
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
+
+  useEffect(() => {
+    const fetchServicesAndTools = async () => {
+      try {
+        // Fetch all tools from the database
+        const { data: tools, error } = await supabase
+          .from('tools')
+          .select('id, name, category')
+          .order('name');
+
+        if (error) {
+          console.error('Error fetching tools:', error);
+          return;
+        }
+
+        // Group tools by category to create services
+        const serviceMap = new Map<string, Tool[]>();
+        
+        tools?.forEach(tool => {
+          const category = tool.category || 'uncategorized';
+          if (!serviceMap.has(category)) {
+            serviceMap.set(category, []);
+          }
+          serviceMap.get(category)?.push({
+            id: tool.id,
+            name: tool.name,
+            href: `/tool/${tool.name.toLowerCase().replace(/\s+/g, '-')}`
+          });
+        });
+
+        // Convert to services array
+        const dynamicServices: Service[] = Array.from(serviceMap.entries()).map(([category, tools]) => ({
+          id: category.toLowerCase().replace(/\s+/g, '-'),
+          name: category.charAt(0).toUpperCase() + category.slice(1),
+          icon: categoryIcons[category.toLowerCase()] || BarChart3,
+          tools: tools,
+        }));
+
+        // Combine dynamic services with static services
+        setServices([...dynamicServices, ...staticServices]);
+      } catch (error) {
+        console.error('Error fetching services and tools:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServicesAndTools();
+  }, []);
 
   const toggleService = (serviceId: string) => {
     setExpandedServices(prev =>
@@ -72,6 +123,26 @@ export const AppSidebar = () => {
     if (service.href && isActive(service.href)) return true;
     return service.tools.some(tool => isActive(tool.href));
   };
+
+  if (loading) {
+    return (
+      <div className="w-64 bg-sidebar border-r border-sidebar-border h-screen fixed left-0 top-0 z-30 overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center space-x-2 mb-8">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">AI</span>
+            </div>
+            <span className="text-xl font-bold text-sidebar-foreground">AI Hub</span>
+          </div>
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-10 bg-sidebar-accent/20 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-64 bg-sidebar border-r border-sidebar-border h-screen fixed left-0 top-0 z-30 overflow-y-auto">
@@ -154,7 +225,7 @@ export const AppSidebar = () => {
       <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-sidebar-border">
         <div className="flex items-center space-x-3 text-sm text-sidebar-foreground/60">
           <div className="w-8 h-8 bg-sidebar-accent rounded-full flex items-center justify-center">
-            <span className="text-xs font-medium">DS</span>
+            <span className="text-xs font-medium">AI</span>
           </div>
           <div>
             <div className="font-medium">AI Hub</div>
