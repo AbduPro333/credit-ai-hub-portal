@@ -103,7 +103,6 @@ export type Database = {
       }
       tools: {
         Row: {
-          api_endpoint: string | null
           category: string | null
           created_at: string
           credit_cost: number
@@ -116,9 +115,9 @@ export type Database = {
           rating: number | null
           total_uses: number | null
           updated_at: string
+          webhook_link: string | null
         }
         Insert: {
-          api_endpoint?: string | null
           category?: string | null
           created_at?: string
           credit_cost?: number
@@ -131,9 +130,9 @@ export type Database = {
           rating?: number | null
           total_uses?: number | null
           updated_at?: string
+          webhook_link?: string | null
         }
         Update: {
-          api_endpoint?: string | null
           category?: string | null
           created_at?: string
           credit_cost?: number
@@ -146,6 +145,7 @@ export type Database = {
           rating?: number | null
           total_uses?: number | null
           updated_at?: string
+          webhook_link?: string | null
         }
         Relationships: []
       }

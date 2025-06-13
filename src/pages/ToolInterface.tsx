@@ -38,6 +38,7 @@ interface Tool {
   } | null;
   execution_type: string | null;
   api_endpoint?: string | null;
+  webhook_link?: string | null;
 }
 
 interface ToolExecution {
@@ -94,6 +95,7 @@ const ToolInterface = () => {
             output_schema: toolById.output_schema as Tool['output_schema'],
             execution_type: toolById.execution_type,
             api_endpoint: toolById.api_endpoint,
+            webhook_link: toolById.webhook_link,
           };
           setTool(convertedTool);
         }
@@ -109,6 +111,7 @@ const ToolInterface = () => {
           output_schema: toolData.output_schema as Tool['output_schema'],
           execution_type: toolData.execution_type,
           api_endpoint: toolData.api_endpoint,
+          webhook_link: toolData.webhook_link,
         };
         setTool(convertedTool);
       }
@@ -144,6 +147,15 @@ const ToolInterface = () => {
       toast({
         title: "Authentication Required",
         description: "Please log in to use this tool.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!tool.webhook_link) {
+      toast({
+        title: "Configuration Error",
+        description: "This tool doesn't have a webhook configured.",
         variant: "destructive",
       });
       return;
@@ -195,17 +207,33 @@ const ToolInterface = () => {
 
       setCurrentExecution(executionData);
 
-      // Simulate tool execution (replace with actual tool execution logic)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Send data to webhook
+      console.log('Sending data to webhook:', tool.webhook_link, inputData);
+      const webhookResponse = await fetch(tool.webhook_link, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...inputData,
+          user_id: user.id,
+          tool_id: tool.id,
+          execution_id: executionData.id
+        }),
+      });
 
-      // Generate mock output based on input
-      const mockOutput = `Tool executed successfully with input: ${JSON.stringify(inputData, null, 2)}`;
+      if (!webhookResponse.ok) {
+        throw new Error(`Webhook request failed with status: ${webhookResponse.status}`);
+      }
+
+      const webhookResult = await webhookResponse.json();
+      console.log('Webhook response:', webhookResult);
 
       // Update execution with results
       const { error: updateError } = await supabase
         .from('tool_executions')
         .update({ 
-          output_data: mockOutput,
+          output_data: webhookResult,
           status: 'completed'
         })
         .eq('id', executionData.id);
@@ -228,7 +256,7 @@ const ToolInterface = () => {
       setUserCredits(newCredits);
       setCurrentExecution(prev => prev ? {
         ...prev,
-        output_data: mockOutput,
+        output_data: webhookResult,
         status: 'completed'
       } : null);
 
@@ -244,10 +272,17 @@ const ToolInterface = () => {
       if (currentExecution) {
         await supabase
           .from('tool_executions')
-          .update({ status: 'error' })
+          .update({ 
+            status: 'error',
+            output_data: { error: error instanceof Error ? error.message : 'Unknown error occurred' }
+          })
           .eq('id', currentExecution.id);
         
-        setCurrentExecution(prev => prev ? { ...prev, status: 'error' } : null);
+        setCurrentExecution(prev => prev ? { 
+          ...prev, 
+          status: 'error',
+          output_data: { error: error instanceof Error ? error.message : 'Unknown error occurred' }
+        } : null);
       }
 
       toast({
