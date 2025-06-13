@@ -424,6 +424,7 @@ const ToolInterface = () => {
           output={currentExecution?.output_data}
           status={currentExecution?.status as any || 'pending'}
           outputSchema={tool.output_schema}
+          toolCategory={tool.category}
         />
       </div>
     </div>
