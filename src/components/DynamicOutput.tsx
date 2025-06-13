@@ -60,9 +60,14 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
   };
 
   const isLeadDataArray = (data: any) => {
-    return Array.isArray(data) && data.length > 0 && 
-           typeof data[0] === 'object' && 
-           (data[0].name || data[0].email || data[0].phone || data[0].contact);
+    if (!Array.isArray(data) || data.length === 0) return false;
+    
+    const firstItem = data[0];
+    if (typeof firstItem !== 'object' || firstItem === null) return false;
+    
+    // Check for common lead fields
+    const leadFields = ['name', 'full_name', 'email', 'phone', 'contact', 'profile_url', 'headline', 'location'];
+    return leadFields.some(field => field in firstItem);
   };
 
   const handleAddToContacts = () => {
@@ -70,6 +75,24 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
       title: "Contacts Added",
       description: "Leads have been added to your contact list.",
     });
+  };
+
+  const formatCellValue = (value: any) => {
+    if (value === null || value === undefined) return '-';
+    if (Array.isArray(value)) {
+      // Handle arrays like experience
+      return value.map((item, idx) => {
+        if (typeof item === 'object') {
+          return Object.values(item).join(' - ');
+        }
+        return item;
+      }).join('; ');
+    }
+    if (typeof value === 'object') {
+      // Handle nested objects like contact_info
+      return Object.values(value).filter(v => v !== null && v !== undefined).join(', ') || '-';
+    }
+    return String(value);
   };
 
   const renderLeadTable = (leads: any[]) => {
@@ -101,7 +124,7 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
                 <TableRow key={index}>
                   {allKeys.map((key) => (
                     <TableCell key={key} className="text-foreground">
-                      {lead[key] || '-'}
+                      {formatCellValue(lead[key])}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -127,6 +150,10 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
         </div>
       );
     }
+
+    console.log('DynamicOutput - output:', output);
+    console.log('DynamicOutput - isLeadGenTool:', isLeadGenTool());
+    console.log('DynamicOutput - isLeadDataArray(output):', isLeadDataArray(output));
 
     // Check if this is a Lead Gen tool and the output is an array of lead objects
     if (isLeadGenTool() && isLeadDataArray(output)) {
