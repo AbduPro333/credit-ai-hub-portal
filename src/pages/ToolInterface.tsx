@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,9 @@ const ToolInterface = () => {
   useEffect(() => {
     const fetchTool = async () => {
       if (!id) return;
+      
+      // Clear previous execution when switching tools
+      setCurrentExecution(null);
       
       console.log('Fetching tool with ID/slug:', id);
       
@@ -335,7 +339,7 @@ const ToolInterface = () => {
             </div>
           </div>
         </header>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Card className="dashboard-card">
             <CardHeader>
               <CardTitle className="text-foreground">Tool Not Found</CardTitle>
@@ -380,7 +384,7 @@ const ToolInterface = () => {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tool Information */}
         <Card className="dashboard-card mb-8">
           <CardHeader>
