@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,6 @@ interface Tool {
     format?: string;
   } | null;
   execution_type: string | null;
-  api_endpoint?: string | null;
   webhook_link?: string | null;
 }
 
@@ -94,7 +92,6 @@ const ToolInterface = () => {
             input_schema: toolById.input_schema as Tool['input_schema'],
             output_schema: toolById.output_schema as Tool['output_schema'],
             execution_type: toolById.execution_type,
-            api_endpoint: toolById.api_endpoint,
             webhook_link: toolById.webhook_link,
           };
           setTool(convertedTool);
@@ -110,7 +107,6 @@ const ToolInterface = () => {
           input_schema: toolData.input_schema as Tool['input_schema'],
           output_schema: toolData.output_schema as Tool['output_schema'],
           execution_type: toolData.execution_type,
-          api_endpoint: toolData.api_endpoint,
           webhook_link: toolData.webhook_link,
         };
         setTool(convertedTool);
