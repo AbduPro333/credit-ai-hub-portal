@@ -63,54 +63,82 @@ const ToolInterface = () => {
     const fetchTool = async () => {
       if (!id) return;
       
-      const { data: toolData, error } = await supabase
+      console.log('Fetching tool with ID/slug:', id);
+      
+      // First, try to fetch by exact ID (UUID)
+      let toolData = null;
+      let error = null;
+      
+      // Try fetching by ID first
+      const { data: toolById, error: idError } = await supabase
         .from('tools')
         .select('*')
-        .eq('name', id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '))
-        .single();
+        .eq('id', id)
+        .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching tool:', error);
-        // Try to fetch by ID if name lookup fails
-        const { data: toolById, error: idError } = await supabase
-          .from('tools')
-          .select('*')
-          .eq('id', id)
-          .single();
-        
-        if (idError) {
-          console.error('Error fetching tool by ID:', idError);
-          setTool(undefined);
-        } else {
-          // Convert the database row to our Tool interface
-          const convertedTool: Tool = {
-            id: toolById.id,
-            name: toolById.name,
-            description: toolById.description,
-            credit_cost: toolById.credit_cost,
-            category: toolById.category,
-            input_schema: toolById.input_schema as Tool['input_schema'],
-            output_schema: toolById.output_schema as Tool['output_schema'],
-            execution_type: toolById.execution_type,
-            webhook_link: toolById.webhook_link,
-          };
-          setTool(convertedTool);
-        }
+      if (!idError && toolById) {
+        toolData = toolById;
       } else {
-        // Convert the database row to our Tool interface
-        const convertedTool: Tool = {
-          id: toolData.id,
-          name: toolData.name,
-          description: toolData.description,
-          credit_cost: toolData.credit_cost,
-          category: toolData.category,
-          input_schema: toolData.input_schema as Tool['input_schema'],
-          output_schema: toolData.output_schema as Tool['output_schema'],
-          execution_type: toolData.execution_type,
-          webhook_link: toolData.webhook_link,
-        };
-        setTool(convertedTool);
+        console.log('Tool not found by ID, trying by name variations...');
+        
+        // Convert slug to different name formats and try each
+        const slugToName1 = id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        const slugToName2 = id.replace(/-/g, ' ');
+        const slugToName3 = id.replace(/-/g, ' ').toLowerCase();
+        const slugToName4 = id.replace(/-/g, ' ').toUpperCase();
+        
+        console.log('Trying name variations:', [slugToName1, slugToName2, slugToName3, slugToName4]);
+        
+        // Try different name formats
+        for (const nameVariation of [slugToName1, slugToName2, slugToName3, slugToName4]) {
+          const { data: toolByName, error: nameError } = await supabase
+            .from('tools')
+            .select('*')
+            .ilike('name', nameVariation)
+            .maybeSingle();
+            
+          if (!nameError && toolByName) {
+            toolData = toolByName;
+            break;
+          }
+        }
+        
+        // If still not found, try a broader search using ILIKE with wildcards
+        if (!toolData) {
+          const searchTerm = id.replace(/-/g, '%');
+          const { data: toolBySearch, error: searchError } = await supabase
+            .from('tools')
+            .select('*')
+            .ilike('name', `%${searchTerm}%`)
+            .maybeSingle();
+            
+          if (!searchError && toolBySearch) {
+            toolData = toolBySearch;
+          }
+        }
       }
+
+      if (!toolData) {
+        console.error('Tool not found with any method');
+        setTool(undefined);
+        return;
+      }
+
+      // Convert the database row to our Tool interface
+      const convertedTool: Tool = {
+        id: toolData.id,
+        name: toolData.name,
+        description: toolData.description,
+        credit_cost: toolData.credit_cost,
+        category: toolData.category,
+        input_schema: toolData.input_schema as Tool['input_schema'],
+        output_schema: toolData.output_schema as Tool['output_schema'],
+        execution_type: toolData.execution_type,
+        webhook_link: toolData.webhook_link,
+      };
+      
+      console.log('Successfully fetched tool:', convertedTool);
+      setTool(convertedTool);
     };
 
     fetchTool();
@@ -317,6 +345,7 @@ const ToolInterface = () => {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">Please check the URL or return to the insights page.</p>
+              <p className="text-sm text-muted-foreground mt-2">Searched for: {id}</p>
             </CardContent>
           </Card>
         </div>
