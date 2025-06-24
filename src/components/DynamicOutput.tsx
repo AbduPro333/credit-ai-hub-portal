@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +8,7 @@ import { CheckCircle, XCircle, Clock, Users, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { addContactsToDatabase, normalizeContactData } from "@/utils/contacts";
+import { cn } from "@/lib/utils";
 
 interface DynamicOutputProps {
   output: any;
@@ -30,6 +30,7 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
   const { toast } = useToast();
   const { user } = useAuth();
   const [isAddingContacts, setIsAddingContacts] = useState(false);
+  const [contactsAdded, setContactsAdded] = useState(false);
 
   const getStatusIcon = () => {
     switch (status) {
@@ -103,6 +104,7 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
       const result = await addContactsToDatabase(contactsData, user.id);
 
       if (result.success) {
+        setContactsAdded(true);
         toast({
           title: "Contacts Added Successfully",
           description: `${result.count} contact${result.count !== 1 ? 's' : ''} added to your contact list.`,
@@ -181,13 +183,23 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
         <div className="flex justify-center pt-4">
           <Button 
             onClick={handleAddToContacts} 
-            disabled={isAddingContacts}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200"
+            disabled={isAddingContacts || contactsAdded}
+            className={cn(
+              "transition-all duration-200",
+              contactsAdded 
+                ? "bg-muted text-muted-foreground cursor-not-allowed" 
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            )}
           >
             {isAddingContacts ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Adding Contacts...
+              </>
+            ) : contactsAdded ? (
+              <>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Contacts Added
               </>
             ) : (
               <>

@@ -18,13 +18,20 @@ interface Service {
   href?: string;
 }
 
-// Static services that don't have tools - Insights at the top
+// Static services that don't have tools - Insights and Contacts at the top
 const staticServices = [
   {
     id: "insights",
     name: "Insights",
     icon: BarChart3,
     href: "/insights",
+    tools: [],
+  },
+  {
+    id: "contacts",
+    name: "Contacts",
+    icon: Users,
+    href: "/contacts",
     tools: [],
   },
   {
@@ -95,22 +102,10 @@ export const AppSidebar = () => {
             tools: tools,
           };
 
-          // Add Contacts link to Lead Generation category
-          if (category.toLowerCase() === 'lead generation') {
-            service.tools = [
-              {
-                id: 'contacts',
-                name: 'Contacts',
-                href: '/contacts'
-              },
-              ...tools
-            ];
-          }
-
           return service;
         });
 
-        // Combine static services (with Insights first) with dynamic services
+        // Combine static services (with Insights and Contacts first) with dynamic services
         setServices([...staticServices, ...dynamicServices]);
       } catch (error) {
         console.error('Error fetching services and tools:', error);
@@ -220,15 +215,12 @@ export const AppSidebar = () => {
                         key={tool.id}
                         to={tool.href}
                         className={cn(
-                          "block px-3 py-2 rounded-lg text-sm transition-colors flex items-center space-x-2",
+                          "block px-3 py-2 rounded-lg text-sm transition-colors",
                           isActive(tool.href)
                             ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                          // Enhanced styling for Contacts link
-                          tool.name === 'Contacts' && "bg-primary/10 text-primary hover:bg-primary/20 font-medium border border-primary/20"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         )}
                       >
-                        {tool.name === 'Contacts' && <Users className="w-4 h-4" />}
                         <span>{tool.name}</span>
                       </Link>
                     ))}
