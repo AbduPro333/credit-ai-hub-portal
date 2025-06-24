@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Trash2, Download, UserPlus, Clock, Loader2 } from 'lucide-react';
+import { Trash2, Download, UserPlus, Clock, Loader2, Users, Database } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Contact {
@@ -179,22 +179,88 @@ const ContactsPage = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Enhanced Header Section */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Contacts</h1>
-          <p className="text-muted-foreground">
-            Manage your imported contacts and take action
-          </p>
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+              <Database className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Contact Management</h1>
+              <p className="text-muted-foreground">
+                Organize and manage your imported lead generation contacts
+              </p>
+            </div>
+          </div>
         </div>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
           {contacts.length} total contacts
         </div>
       </div>
 
+      {/* Always Visible Action Bar */}
+      <Card className="bg-background border">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="font-medium text-sm">
+                {selectedContacts.length > 0 
+                  ? `${selectedContacts.length} contact(s) selected` 
+                  : 'No contacts selected'
+                }
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDelete}
+                disabled={selectedContacts.length === 0 || actionLoading}
+                className="text-destructive hover:text-destructive disabled:opacity-50"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDownload}
+                disabled={selectedContacts.length === 0 || actionLoading}
+                className="disabled:opacity-50"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleAddToCRM}
+                disabled={selectedContacts.length === 0 || actionLoading}
+                className="disabled:opacity-50"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add to CRM
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleFollowUp}
+                disabled={selectedContacts.length === 0 || actionLoading}
+                className="disabled:opacity-50"
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                Follow Up
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {contacts.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
+            <Users className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No contacts yet</h3>
             <p className="text-muted-foreground text-center max-w-md">
               Start using our lead generation tools to import your first contacts. 
@@ -204,60 +270,6 @@ const ContactsPage = () => {
         </Card>
       ) : (
         <>
-          {/* Action Bar */}
-          {selectedContacts.length > 0 && (
-            <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <span className="font-medium">
-                      {selectedContacts.length} contact(s) selected
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleDelete}
-                      disabled={actionLoading}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleDownload}
-                      disabled={actionLoading}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleAddToCRM}
-                      disabled={actionLoading}
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Add to CRM
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleFollowUp}
-                      disabled={actionLoading}
-                    >
-                      <Clock className="h-4 w-4 mr-2" />
-                      Follow Up
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Contacts Table */}
           <Card>
             <CardHeader>
@@ -282,6 +294,7 @@ const ContactsPage = () => {
                         <Checkbox
                           checked={selectedContacts.length === contacts.length && contacts.length > 0}
                           onCheckedChange={handleSelectAll}
+                          className="rounded-sm"
                         />
                       </TableHead>
                       <TableHead>Name</TableHead>
@@ -304,6 +317,7 @@ const ContactsPage = () => {
                           <Checkbox
                             checked={selectedContacts.includes(contact.id)}
                             onCheckedChange={() => handleSelectContact(contact.id)}
+                            className="rounded-sm"
                           />
                         </TableCell>
                         <TableCell className="font-medium">

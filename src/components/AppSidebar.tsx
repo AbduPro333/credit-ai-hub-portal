@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDown, ChevronRight, BarChart3, Settings, CreditCard, Users } from "lucide-react";
@@ -99,12 +98,12 @@ export const AppSidebar = () => {
           // Add Contacts link to Lead Generation category
           if (category.toLowerCase() === 'lead generation') {
             service.tools = [
-              ...tools,
               {
                 id: 'contacts',
                 name: 'Contacts',
                 href: '/contacts'
-              }
+              },
+              ...tools
             ];
           }
 
@@ -225,7 +224,7 @@ export const AppSidebar = () => {
                           isActive(tool.href)
                             ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                             : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                          // Special styling for Contacts link
+                          // Enhanced styling for Contacts link
                           tool.name === 'Contacts' && "bg-primary/10 text-primary hover:bg-primary/20 font-medium border border-primary/20"
                         )}
                       >
