@@ -9,6 +9,20 @@ export interface ContactData {
   contact_position?: string;
   address?: string;
   status?: string;
+  // Allow for alternative field names that might come from different APIs
+  phone?: string;
+  company?: string;
+  position?: string;
+  headline?: string;
+  location?: string;
+  full_name?: string;
+  firstName?: string;
+  lastName?: string;
+  contact_info?: {
+    email?: string;
+    phone?: string;
+  };
+  title?: string;
 }
 
 export const addContactsToDatabase = async (contacts: ContactData[], userId: string) => {
@@ -16,11 +30,11 @@ export const addContactsToDatabase = async (contacts: ContactData[], userId: str
     // Map contacts and add user_id and current timestamp
     const contactsToInsert = contacts.map(contact => ({
       user_id: userId,
-      name: contact.name || null,
-      email: contact.email || null,
-      phone_number: contact.phone_number || contact.phone || null,
+      name: contact.name || contact.full_name || (contact.firstName && contact.lastName ? `${contact.firstName} ${contact.lastName}` : null) || null,
+      email: contact.email || contact.contact_info?.email || null,
+      phone_number: contact.phone_number || contact.phone || contact.contact_info?.phone || null,
       company_name: contact.company_name || contact.company || null,
-      contact_position: contact.contact_position || contact.position || contact.headline || null,
+      contact_position: contact.contact_position || contact.position || contact.headline || contact.title || null,
       address: contact.address || contact.location || null,
       status: contact.status || 'new',
       // added_at_date will be set by the database default
@@ -64,7 +78,7 @@ export const normalizeContactData = (rawData: any): ContactData[] => {
 
   // Normalize field names to match our database schema
   return contacts.map(contact => ({
-    name: contact.name || contact.full_name || contact.firstName + ' ' + contact.lastName || null,
+    name: contact.name || contact.full_name || (contact.firstName && contact.lastName ? `${contact.firstName} ${contact.lastName}` : null) || null,
     email: contact.email || contact.contact_info?.email || null,
     phone_number: contact.phone || contact.phone_number || contact.contact_info?.phone || null,
     company_name: contact.company || contact.company_name || null,
