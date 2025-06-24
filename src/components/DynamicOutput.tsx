@@ -1,12 +1,14 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle, XCircle, Clock, Users } from "lucide-react";
+import { CheckCircle, XCircle, Clock, Users, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { addContactsToDatabase, normalizeContactData } from "@/utils/contacts";
 
 interface DynamicOutputProps {
   output: any;
@@ -26,6 +28,8 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
   toolCategory
 }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [isAddingContacts, setIsAddingContacts] = useState(false);
 
   const getStatusIcon = () => {
     switch (status) {
@@ -70,11 +74,53 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
     return leadFields.some(field => field in firstItem);
   };
 
-  const handleAddToContacts = () => {
-    toast({
-      title: "Contacts Added",
-      description: "Leads have been added to your contact list.",
-    });
+  const handleAddToContacts = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to add contacts.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAddingContacts(true);
+
+    try {
+      // Normalize the contact data
+      const contactsData = normalizeContactData(output);
+      
+      if (contactsData.length === 0) {
+        toast({
+          title: "No Contacts Found",
+          description: "No valid contact data found to import.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Add contacts to database
+      const result = await addContactsToDatabase(contactsData, user.id);
+
+      if (result.success) {
+        toast({
+          title: "Contacts Added Successfully",
+          description: `${result.count} contact${result.count !== 1 ? 's' : ''} added to your contact list.`,
+          className: "border-green-500/20 bg-green-500/10 text-green-700",
+        });
+      } else {
+        throw new Error(result.error || 'Failed to add contacts');
+      }
+    } catch (error) {
+      console.error('Error adding contacts:', error);
+      toast({
+        title: "Error Adding Contacts",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingContacts(false);
+    }
   };
 
   const formatCellValue = (value: any) => {
@@ -107,7 +153,7 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
     };
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -133,9 +179,22 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
           </Table>
         </div>
         <div className="flex justify-center pt-4">
-          <Button onClick={handleAddToContacts} className="bg-primary text-primary-foreground hover:bg-primary/90">
-            <Users className="h-4 w-4 mr-2" />
-            Add to Contacts
+          <Button 
+            onClick={handleAddToContacts} 
+            disabled={isAddingContacts}
+            className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200"
+          >
+            {isAddingContacts ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Adding Contacts...
+              </>
+            ) : (
+              <>
+                <Users className="h-4 w-4 mr-2" />
+                Add to Contacts
+              </>
+            )}
           </Button>
         </div>
       </div>

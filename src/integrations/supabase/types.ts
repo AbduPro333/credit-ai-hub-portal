@@ -9,6 +9,53 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      contacts: {
+        Row: {
+          added_at_date: string
+          address: string | null
+          company_name: string | null
+          contact_position: string | null
+          email: string | null
+          id: string
+          name: string | null
+          phone_number: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          added_at_date?: string
+          address?: string | null
+          company_name?: string | null
+          contact_position?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone_number?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          added_at_date?: string
+          address?: string | null
+          company_name?: string | null
+          contact_position?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone_number?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           created_at: string
