@@ -12,6 +12,7 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import ToolInterface from "./pages/ToolInterface";
 import Pricing from "./pages/Pricing";
+import ContactsPage from "./pages/ContactsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
             <Route path="/insights" element={<AppLayout><Dashboard /></AppLayout>} />
             <Route path="/tool/:id" element={<AppLayout><ToolInterface /></AppLayout>} />
+            <Route path="/contacts" element={<AppLayout><ContactsPage /></AppLayout>} />
             <Route path="/pricing" element={<AppLayout><Pricing /></AppLayout>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<AppLayout showSidebar={false}><NotFound /></AppLayout>} />

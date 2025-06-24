@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronDown, ChevronRight, BarChart3, Settings, CreditCard } from "lucide-react";
+import { ChevronDown, ChevronRight, BarChart3, Settings, CreditCard, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -87,12 +88,28 @@ export const AppSidebar = () => {
         });
 
         // Convert to services array
-        const dynamicServices: Service[] = Array.from(serviceMap.entries()).map(([category, tools]) => ({
-          id: category.toLowerCase().replace(/\s+/g, '-'),
-          name: category.charAt(0).toUpperCase() + category.slice(1),
-          icon: categoryIcons[category.toLowerCase()] || BarChart3,
-          tools: tools,
-        }));
+        const dynamicServices: Service[] = Array.from(serviceMap.entries()).map(([category, tools]) => {
+          const service: Service = {
+            id: category.toLowerCase().replace(/\s+/g, '-'),
+            name: category.charAt(0).toUpperCase() + category.slice(1),
+            icon: categoryIcons[category.toLowerCase()] || BarChart3,
+            tools: tools,
+          };
+
+          // Add Contacts link to Lead Generation category
+          if (category.toLowerCase() === 'lead generation') {
+            service.tools = [
+              ...tools,
+              {
+                id: 'contacts',
+                name: 'Contacts',
+                href: '/contacts'
+              }
+            ];
+          }
+
+          return service;
+        });
 
         // Combine static services (with Insights first) with dynamic services
         setServices([...staticServices, ...dynamicServices]);
@@ -204,13 +221,16 @@ export const AppSidebar = () => {
                         key={tool.id}
                         to={tool.href}
                         className={cn(
-                          "block px-3 py-2 rounded-lg text-sm transition-colors",
+                          "block px-3 py-2 rounded-lg text-sm transition-colors flex items-center space-x-2",
                           isActive(tool.href)
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                          // Special styling for Contacts link
+                          tool.name === 'Contacts' && "bg-primary/10 text-primary hover:bg-primary/20 font-medium border border-primary/20"
                         )}
                       >
-                        {tool.name}
+                        {tool.name === 'Contacts' && <Users className="w-4 h-4" />}
+                        <span>{tool.name}</span>
                       </Link>
                     ))}
                   </div>
