@@ -3,15 +3,12 @@ import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle, XCircle, Clock, Users, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { addContactsToDatabase, normalizeContactData } from "@/utils/contacts";
 import { InitialTaggingModal } from "./InitialTaggingModal";
-import { cn } from "@/lib/utils";
+import { LeadTable } from "./LeadTable";
 
 interface DynamicOutputProps {
   output: any;
@@ -180,124 +177,6 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
     return [];
   };
 
-  const formatCellValue = (value: any) => {
-    if (value === null || value === undefined) return '-';
-    if (Array.isArray(value)) {
-      return value.map((item, idx) => {
-        if (typeof item === 'object') {
-          return Object.values(item).join(' - ');
-        }
-        return item;
-      }).join('; ');
-    }
-    if (typeof value === 'object') {
-      return Object.values(value).filter(v => v !== null && v !== undefined).join(', ') || '-';
-    }
-    return String(value);
-  };
-
-  const renderLeadTable = (leads: any[]) => {
-    if (leads.length === 0) return null;
-
-    const allKeys = Array.from(new Set(leads.flatMap(lead => Object.keys(lead))));
-    const formatHeader = (key: string) => {
-      return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
-    };
-
-    const availableContacts = leads.filter((_, index) => !addedContacts.has(index));
-    const availableIndexes = leads
-      .map((_, index) => index)
-      .filter(index => !addedContacts.has(index));
-    
-    const allAvailableSelected = availableIndexes.length > 0 && 
-      availableIndexes.every(index => selectedContacts.has(index));
-
-    return (
-      <div className="space-y-6">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={allAvailableSelected}
-                    onCheckedChange={(checked) => handleSelectAll(leads, !!checked)}
-                    disabled={availableContacts.length === 0}
-                  />
-                </TableHead>
-                {allKeys.map((key) => (
-                  <TableHead key={key} className="text-muted-foreground">
-                    {formatHeader(key)}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {leads.map((lead, index) => {
-                const isAdded = addedContacts.has(index);
-                const isSelected = selectedContacts.has(index);
-                
-                return (
-                  <TableRow 
-                    key={index}
-                    className={cn(
-                      isAdded && "opacity-50 bg-muted/50"
-                    )}
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={(checked) => handleContactSelection(index, !!checked)}
-                        disabled={isAdded}
-                      />
-                    </TableCell>
-                    {allKeys.map((key) => (
-                      <TableCell 
-                        key={key} 
-                        className={cn(
-                          "text-foreground",
-                          isAdded && "text-muted-foreground"
-                        )}
-                      >
-                        {formatCellValue(lead[key])}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="flex justify-center pt-4">
-          <Button 
-            onClick={handleAddToContacts} 
-            disabled={selectedContacts.size === 0 || isAddingContacts}
-            className={cn(
-              "transition-all duration-200",
-              selectedContacts.size === 0 
-                ? "opacity-50 cursor-not-allowed" 
-                : "bg-primary text-primary-foreground hover:bg-primary/90"
-            )}
-          >
-            <Users className="h-4 w-4 mr-2" />
-            Add {selectedContacts.size} Contact{selectedContacts.size !== 1 ? 's' : ''}
-          </Button>
-        </div>
-
-        {user && (
-          <InitialTaggingModal
-            isOpen={showTaggingModal}
-            onClose={() => setShowTaggingModal(false)}
-            onConfirm={handleConfirmAddContacts}
-            selectedCount={selectedContacts.size}
-            isLoading={isAddingContacts}
-            userId={user.id}
-          />
-        )}
-      </div>
-    );
-  };
-
   const renderOutput = () => {
     if (!output) {
       return (
@@ -311,22 +190,37 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
     console.log('DynamicOutput - isLeadGenTool:', isLeadGenTool());
     console.log('DynamicOutput - isLeadDataArray(output):', isLeadDataArray(output));
 
-    // Check if this is a Lead Gen tool and the output is an array of lead objects
-    if (isLeadGenTool() && isLeadDataArray(output)) {
-      return renderLeadTable(output);
+    // Check if this is a Lead Gen tool and render appropriate lead table
+    if (isLeadGenTool()) {
+      const leads = getLeadsArray();
+      if (leads.length > 0) {
+        return (
+          <>
+            <LeadTable
+              leads={leads}
+              selectedContacts={selectedContacts}
+              addedContacts={addedContacts}
+              onContactSelection={handleContactSelection}
+              onSelectAll={handleSelectAll}
+              onAddToContacts={handleAddToContacts}
+              isAddingContacts={isAddingContacts}
+            />
+            {user && (
+              <InitialTaggingModal
+                isOpen={showTaggingModal}
+                onClose={() => setShowTaggingModal(false)}
+                onConfirm={handleConfirmAddContacts}
+                selectedCount={selectedContacts.size}
+                isLoading={isAddingContacts}
+                userId={user.id}
+              />
+            )}
+          </>
+        );
+      }
     }
 
-    // Check if output has a 'leads' property that contains the lead data
-    if (isLeadGenTool() && output.leads && isLeadDataArray(output.leads)) {
-      return renderLeadTable(output.leads);
-    }
-
-    // Check if output has a 'data' property that contains the lead data
-    if (isLeadGenTool() && output.data && isLeadDataArray(output.data)) {
-      return renderLeadTable(output.data);
-    }
-
-    // If output is a string, display it in a textarea
+    // Fallback to textarea display for non-lead data
     if (typeof output === 'string') {
       return (
         <Textarea
