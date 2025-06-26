@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -172,17 +171,9 @@ const ContactsPage = () => {
     e.preventDefault(); // Prevent form submission
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Enhanced Header Section */}
+      {/* Enhanced Header Section - Always Visible */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-3">
@@ -202,7 +193,7 @@ const ContactsPage = () => {
         </div>
       </div>
 
-      {/* Enhanced Search, Filter, and Sort Controls */}
+      {/* Enhanced Search, Filter, and Sort Controls - Always Visible */}
       <Card className="border-2 border-border/50 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/30 border-b border-border/50">
           <CardTitle className="flex items-center gap-2">
@@ -324,7 +315,7 @@ const ContactsPage = () => {
         </CardContent>
       </Card>
 
-      {/* Contacts Table with Localized Loading */}
+      {/* Contacts Table - Only This Section Shows Loading */}
       {contacts.length === 0 && !loading ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
@@ -358,108 +349,92 @@ const ContactsPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto relative">
+            <div className="relative min-h-[200px]">
               {loading ? (
-                <div className="space-y-4">
-                  {/* Loading skeleton for table */}
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
-                  <div className="space-y-3">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div key={i} className="flex items-center space-x-4">
-                        <Skeleton className="h-4 w-4" />
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-40" />
-                        <Skeleton className="h-4 w-28" />
-                        <Skeleton className="h-4 w-36" />
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                    ))}
-                  </div>
+                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-4 rounded-md">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Loading contacts...</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={selectedContacts.length === contacts.length && contacts.length > 0}
-                          onCheckedChange={handleSelectAll}
-                        />
-                      </TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Tags</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Company</TableHead>
-                      <TableHead>Position</TableHead>
-                      <TableHead>Address</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Added Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {contacts.map((contact) => (
-                      <TableRow 
-                        key={contact.id}
-                        className={selectedContacts.includes(contact.id) ? 'bg-muted/50' : ''}
-                      >
-                        <TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">
                           <Checkbox
-                            checked={selectedContacts.includes(contact.id)}
-                            onCheckedChange={() => handleSelectContact(contact.id)}
+                            checked={selectedContacts.length === contacts.length && contacts.length > 0}
+                            onCheckedChange={handleSelectAll}
                           />
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {contact.name || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1 max-w-48">
-                            {contact.tags && contact.tags.length > 0 ? (
-                              contact.tags.map((tag) => (
-                                <TagBadge key={tag} tag={tag} />
-                              ))
-                            ) : (
-                              <span className="text-muted-foreground text-sm">No tags</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {contact.email || '-'}
-                        </TableCell>
-                        <TableCell>
-                          {contact.phone_number || '-'}
-                        </TableCell>
-                        <TableCell>
-                          {contact.company_name || '-'}
-                        </TableCell>
-                        <TableCell>
-                          {contact.contact_position || '-'}
-                        </TableCell>
-                        <TableCell>
-                          {contact.address || '-'}
-                        </TableCell>
-                        <TableCell>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                            contact.status === 'new' 
-                              ? 'bg-blue-100 text-blue-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {contact.status || 'new'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {format(new Date(contact.added_at_date), 'MMM dd, yyyy HH:mm')}
-                        </TableCell>
+                        </TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Tags</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Company</TableHead>
+                        <TableHead>Position</TableHead>
+                        <TableHead>Address</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Added Date</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {contacts.map((contact) => (
+                        <TableRow 
+                          key={contact.id}
+                          className={selectedContacts.includes(contact.id) ? 'bg-muted/50' : ''}
+                        >
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedContacts.includes(contact.id)}
+                              onCheckedChange={() => handleSelectContact(contact.id)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {contact.name || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1 max-w-48">
+                              {contact.tags && contact.tags.length > 0 ? (
+                                contact.tags.map((tag) => (
+                                  <TagBadge key={tag} tag={tag} />
+                                ))
+                              ) : (
+                                <span className="text-muted-foreground text-sm">No tags</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {contact.email || '-'}
+                          </TableCell>
+                          <TableCell>
+                            {contact.phone_number || '-'}
+                          </TableCell>
+                          <TableCell>
+                            {contact.company_name || '-'}
+                          </TableCell>
+                          <TableCell>
+                            {contact.contact_position || '-'}
+                          </TableCell>
+                          <TableCell>
+                            {contact.address || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              contact.status === 'new' 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {contact.status || 'new'}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(contact.added_at_date), 'MMM dd, yyyy HH:mm')}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </div>
           </CardContent>
