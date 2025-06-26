@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { TagInput } from "./TagInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 interface Contact {
   id: string;
@@ -32,30 +32,28 @@ export const TagManagementModal = ({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  const isBulkEdit = selectedContacts.length > 1;
+
   // Initialize tags when modal opens
   useEffect(() => {
     if (isOpen && selectedContacts.length > 0) {
-      // Get common tags across all selected contacts
-      const allTags = selectedContacts.flatMap(contact => contact.tags || []);
-      const tagCounts = allTags.reduce((acc, tag) => {
-        acc[tag] = (acc[tag] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      // Only show tags that are present in ALL selected contacts
-      const commonTags = Object.entries(tagCounts)
-        .filter(([_, count]) => count === selectedContacts.length)
-        .map(([tag]) => tag);
-      
-      setSelectedTags(commonTags);
+      if (isBulkEdit) {
+        // For bulk edit, start with empty tags (replace all behavior)
+        setSelectedTags([]);
+      } else {
+        // For single contact, show existing tags
+        const contact = selectedContacts[0];
+        setSelectedTags(contact.tags || []);
+      }
     }
-  }, [isOpen, selectedContacts]);
+  }, [isOpen, selectedContacts, isBulkEdit]);
 
   const handleSave = async () => {
     setLoading(true);
     
     try {
-      // Update tags for all selected contacts
+      // Update tags for all selected contacts with the new tags array
+      // This replaces all existing tags for each contact
       const updates = selectedContacts.map(contact => ({
         id: contact.id,
         tags: selectedTags
@@ -72,7 +70,9 @@ export const TagManagementModal = ({
 
       toast({
         title: "Tags Updated",
-        description: `Tags updated for ${selectedContacts.length} contact${selectedContacts.length !== 1 ? 's' : ''}.`,
+        description: isBulkEdit 
+          ? `Tags replaced for ${selectedContacts.length} contacts.`
+          : `Tags updated for ${selectedContacts[0].name || 'contact'}.`,
       });
 
       onTagsUpdated();
@@ -100,7 +100,7 @@ export const TagManagementModal = ({
     if (selectedContacts.length === 1) {
       return "Add or remove tags for this contact.";
     }
-    return "Tags will be applied to all selected contacts. Remove a tag to remove it from all selected contacts.";
+    return "Add tags to apply to all selected contacts.";
   };
 
   return (
@@ -112,6 +112,18 @@ export const TagManagementModal = ({
             {getModalDescription()}
           </p>
         </DialogHeader>
+        
+        {/* Bulk Edit Warning */}
+        {isBulkEdit && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-red-700 font-medium">
+                All existing tags on the selected contacts will be replaced with the new tags you add here.
+              </p>
+            </div>
+          </div>
+        )}
         
         <div className="py-4">
           <TagInput
