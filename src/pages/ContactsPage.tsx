@@ -1,9 +1,11 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { Trash2, Download, UserPlus, Clock, Loader2, Users, Database, Tags, Search } from 'lucide-react';
 import { format } from 'date-fns';
@@ -322,7 +324,8 @@ const ContactsPage = () => {
         </CardContent>
       </Card>
 
-      {contacts.length === 0 ? (
+      {/* Contacts Table with Localized Loading */}
+      {contacts.length === 0 && !loading ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
@@ -338,12 +341,11 @@ const ContactsPage = () => {
           </CardContent>
         </Card>
       ) : (
-        <>
-          {/* Contacts Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>All Contacts</span>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>All Contacts</span>
+              {!loading && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -352,10 +354,35 @@ const ContactsPage = () => {
                 >
                   {selectedContacts.length === contacts.length ? 'Deselect All' : 'Select All'}
                 </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto relative">
+              {loading ? (
+                <div className="space-y-4">
+                  {/* Loading skeleton for table */}
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                  <div className="space-y-3">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="flex items-center space-x-4">
+                        <Skeleton className="h-4 w-4" />
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-4 w-28" />
+                        <Skeleton className="h-4 w-36" />
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -433,10 +460,10 @@ const ContactsPage = () => {
                     ))}
                   </TableBody>
                 </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Tag Management Modal */}
