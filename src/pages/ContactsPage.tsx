@@ -1,6 +1,5 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,6 +10,11 @@ import { Trash2, Download, UserPlus, Clock, Loader2, Users, Database, Tags } fro
 import { format } from 'date-fns';
 import { TagBadge } from '@/components/TagBadge';
 import { TagManagementModal } from '@/components/TagManagementModal';
+import { ContactsSearchBar } from '@/components/ContactsSearchBar';
+import { ContactsTagFilter } from '@/components/ContactsTagFilter';
+import { ContactsSortControl } from '@/components/ContactsSortControl';
+import { useContactsFiltering } from '@/hooks/useContactsFiltering';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Contact {
   id: string;
@@ -27,47 +31,25 @@ interface Contact {
 
 const ContactsPage = () => {
   const { user } = useAuth();
-  const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [tagModalOpen, setTagModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchContacts();
-    }
-  }, [user]);
-
-  const fetchContacts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .order('added_at_date', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching contacts:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load contacts. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setContacts(data || []);
-    } catch (error) {
-      console.error('Error in fetchContacts:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load contacts. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    contacts,
+    loading,
+    searchQuery,
+    searchField,
+    selectedTags,
+    sortBy,
+    sortOrder,
+    setSearchQuery,
+    setSearchField,
+    setSelectedTags,
+    clearSearch,
+    handleSortChange,
+    refetchContacts
+  } = useContactsFiltering({ userId: user?.id });
 
   const handleSelectContact = (contactId: string) => {
     setSelectedContacts(prev => 
@@ -111,7 +93,7 @@ const ContactsPage = () => {
       });
 
       setSelectedContacts([]);
-      await fetchContacts();
+      await refetchContacts();
     } catch (error) {
       console.error('Error in handleDelete:', error);
       toast({
@@ -215,6 +197,41 @@ const ContactsPage = () => {
         </div>
       </div>
 
+      {/* Search, Filter, and Sort Controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Find Contacts</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ContactsSearchBar
+            searchQuery={searchQuery}
+            searchField={searchField}
+            onSearchQueryChange={setSearchQuery}
+            onSearchFieldChange={setSearchField}
+            onClearSearch={clearSearch}
+          />
+          
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1">
+              {user && (
+                <ContactsTagFilter
+                  selectedTags={selectedTags}
+                  onTagsChange={setSelectedTags}
+                  userId={user.id}
+                />
+              )}
+            </div>
+            <div className="lg:w-auto">
+              <ContactsSortControl
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSortChange={handleSortChange}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Always Visible Action Bar */}
       <Card className="bg-background border">
         <CardContent className="pt-6">
@@ -287,10 +304,14 @@ const ContactsPage = () => {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No contacts yet</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {searchQuery || selectedTags.length > 0 ? 'No matching contacts found' : 'No contacts yet'}
+            </h3>
             <p className="text-muted-foreground text-center max-w-md">
-              Start using our lead generation tools to import your first contacts. 
-              They'll appear here for easy management.
+              {searchQuery || selectedTags.length > 0 
+                ? 'Try adjusting your search or filter criteria to find contacts.'
+                : 'Start using our lead generation tools to import your first contacts. They\'ll appear here for easy management.'
+              }
             </p>
           </CardContent>
         </Card>
@@ -403,7 +424,7 @@ const ContactsPage = () => {
           onClose={() => setTagModalOpen(false)}
           selectedContacts={getSelectedContactsData()}
           onTagsUpdated={() => {
-            fetchContacts();
+            refetchContacts();
             setSelectedContacts([]);
           }}
           userId={user.id}
