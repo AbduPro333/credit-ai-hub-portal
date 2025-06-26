@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -33,21 +33,42 @@ export const ContactsSearchBar = ({
   onClearSearch,
   className
 }: ContactsSearchBarProps) => {
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onSearchQueryChange(localSearchQuery);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [localSearchQuery, onSearchQueryChange]);
+
+  // Sync with external changes
+  useEffect(() => {
+    setLocalSearchQuery(searchQuery);
+  }, [searchQuery]);
+
+  const handleClearSearch = () => {
+    setLocalSearchQuery("");
+    onClearSearch();
+  };
+
   return (
     <div className={cn("flex flex-col sm:flex-row gap-3", className)}>
       <div className="flex-1 relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder={`Search contacts by ${searchFields.find(f => f.value === searchField)?.label.toLowerCase() || 'field'}...`}
-          value={searchQuery}
-          onChange={(e) => onSearchQueryChange(e.target.value)}
+          value={localSearchQuery}
+          onChange={(e) => setLocalSearchQuery(e.target.value)}
           className="pl-10 pr-10"
         />
-        {searchQuery && (
+        {localSearchQuery && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={onClearSearch}
+            onClick={handleClearSearch}
             className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
           >
             <X className="h-4 w-4" />

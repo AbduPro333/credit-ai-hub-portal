@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Trash2, Download, UserPlus, Clock, Loader2, Users, Database, Tags } from 'lucide-react';
+import { Trash2, Download, UserPlus, Clock, Loader2, Users, Database, Tags, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { TagBadge } from '@/components/TagBadge';
 import { TagManagementModal } from '@/components/TagManagementModal';
@@ -197,22 +196,32 @@ const ContactsPage = () => {
         </div>
       </div>
 
-      {/* Search, Filter, and Sort Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Find Contacts</CardTitle>
+      {/* Enhanced Search, Filter, and Sort Controls */}
+      <Card className="border-2 border-border/50 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/30 border-b border-border/50">
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5 text-primary" />
+            Find & Organize Contacts
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <ContactsSearchBar
-            searchQuery={searchQuery}
-            searchField={searchField}
-            onSearchQueryChange={setSearchQuery}
-            onSearchFieldChange={setSearchField}
-            onClearSearch={clearSearch}
-          />
+        <CardContent className="p-6 space-y-6">
+          {/* Search Bar */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-muted-foreground">Search Contacts</label>
+            <ContactsSearchBar
+              searchQuery={searchQuery}
+              searchField={searchField}
+              onSearchQueryChange={setSearchQuery}
+              onSearchFieldChange={setSearchField}
+              onClearSearch={clearSearch}
+            />
+          </div>
           
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1">
+          {/* Filter and Sort Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4 border-t border-border/30">
+            {/* Tag Filter */}
+            <div className="lg:col-span-2 space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Filter by Tags</label>
               {user && (
                 <ContactsTagFilter
                   selectedTags={selectedTags}
@@ -221,11 +230,15 @@ const ContactsPage = () => {
                 />
               )}
             </div>
-            <div className="lg:w-auto">
+            
+            {/* Sort Control */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Sort Contacts</label>
               <ContactsSortControl
                 sortBy={sortBy}
                 sortOrder={sortOrder}
                 onSortChange={handleSortChange}
+                className="justify-start"
               />
             </div>
           </div>

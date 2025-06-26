@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -30,7 +30,7 @@ export const useContactsFiltering = ({ userId }: UseContactsFilteringProps) => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const { toast } = useToast();
 
-  const fetchContacts = async () => {
+  const fetchContacts = useCallback(async () => {
     if (!userId) return;
     
     setLoading(true);
@@ -76,11 +76,11 @@ export const useContactsFiltering = ({ userId }: UseContactsFilteringProps) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, searchQuery, searchField, selectedTags, sortBy, sortOrder, toast]);
 
   useEffect(() => {
     fetchContacts();
-  }, [userId, searchQuery, searchField, selectedTags, sortBy, sortOrder]);
+  }, [fetchContacts]);
 
   const clearSearch = () => {
     setSearchQuery("");
