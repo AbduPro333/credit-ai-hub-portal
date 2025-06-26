@@ -9,6 +9,7 @@ export interface ContactData {
   contact_position?: string;
   address?: string;
   status?: string;
+  tags?: string[];
   // Allow for alternative field names that might come from different APIs
   phone?: string;
   company?: string;
@@ -37,6 +38,7 @@ export const addContactsToDatabase = async (contacts: ContactData[], userId: str
       contact_position: contact.contact_position || contact.position || contact.headline || contact.title || null,
       address: contact.address || contact.location || null,
       status: contact.status || 'new',
+      tags: contact.tags || null,
       // added_at_date will be set by the database default
     }));
 
@@ -84,6 +86,7 @@ export const normalizeContactData = (rawData: any): ContactData[] => {
     company_name: contact.company || contact.company_name || null,
     contact_position: contact.position || contact.contact_position || contact.headline || contact.title || null,
     address: contact.address || contact.location || null,
-    status: contact.status || 'new'
+    status: contact.status || 'new',
+    tags: contact.tags || null
   }));
 };

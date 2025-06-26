@@ -1,13 +1,16 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle, XCircle, Clock, Users, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { addContactsToDatabase, normalizeContactData } from "@/utils/contacts";
+import { InitialTaggingModal } from "./InitialTaggingModal";
 import { cn } from "@/lib/utils";
 
 interface DynamicOutputProps {
@@ -29,8 +32,10 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
 }) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [selectedContacts, setSelectedContacts] = useState<Set<number>>(new Set());
+  const [addedContacts, setAddedContacts] = useState<Set<number>>(new Set());
   const [isAddingContacts, setIsAddingContacts] = useState(false);
-  const [contactsAdded, setContactsAdded] = useState(false);
+  const [showTaggingModal, setShowTaggingModal] = useState(false);
 
   const getStatusIcon = () => {
     switch (status) {
@@ -75,7 +80,32 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
     return leadFields.some(field => field in firstItem);
   };
 
-  const handleAddToContacts = async () => {
+  const handleContactSelection = (index: number, checked: boolean) => {
+    const newSelected = new Set(selectedContacts);
+    if (checked) {
+      newSelected.add(index);
+    } else {
+      newSelected.delete(index);
+    }
+    setSelectedContacts(newSelected);
+  };
+
+  const handleSelectAll = (leads: any[], checked: boolean) => {
+    if (checked) {
+      const availableIndexes = leads
+        .map((_, index) => index)
+        .filter(index => !addedContacts.has(index));
+      setSelectedContacts(new Set(availableIndexes));
+    } else {
+      setSelectedContacts(new Set());
+    }
+  };
+
+  const getSelectedContactsData = (leads: any[]) => {
+    return Array.from(selectedContacts).map(index => leads[index]);
+  };
+
+  const handleAddToContacts = () => {
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -85,11 +115,19 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
       return;
     }
 
+    setShowTaggingModal(true);
+  };
+
+  const handleConfirmAddContacts = async (initialTags: string[]) => {
     setIsAddingContacts(true);
+    setShowTaggingModal(false);
 
     try {
+      const leads = getLeadsArray();
+      const selectedContactsData = getSelectedContactsData(leads);
+      
       // Normalize the contact data
-      const contactsData = normalizeContactData(output);
+      const contactsData = normalizeContactData(selectedContactsData);
       
       if (contactsData.length === 0) {
         toast({
@@ -100,14 +138,24 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
         return;
       }
 
+      // Add initial tags to each contact
+      const contactsWithTags = contactsData.map(contact => ({
+        ...contact,
+        tags: initialTags
+      }));
+
       // Add contacts to database
-      const result = await addContactsToDatabase(contactsData, user.id);
+      const result = await addContactsToDatabase(contactsWithTags, user.id);
 
       if (result.success) {
-        setContactsAdded(true);
+        // Mark selected contacts as added
+        const newAddedContacts = new Set([...addedContacts, ...selectedContacts]);
+        setAddedContacts(newAddedContacts);
+        setSelectedContacts(new Set());
+
         toast({
           title: "Contacts Added Successfully",
-          description: `${result.count} contact${result.count !== 1 ? 's' : ''} added to your contact list.`,
+          description: `${result.count} contact${result.count !== 1 ? 's' : ''} added to your contact list${initialTags.length > 0 ? ` with ${initialTags.length} tag${initialTags.length !== 1 ? 's' : ''}` : ''}.`,
           className: "border-green-500/20 bg-green-500/10 text-green-700",
         });
       } else {
@@ -125,10 +173,16 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
     }
   };
 
+  const getLeadsArray = () => {
+    if (isLeadDataArray(output)) return output;
+    if (output.leads && isLeadDataArray(output.leads)) return output.leads;
+    if (output.data && isLeadDataArray(output.data)) return output.data;
+    return [];
+  };
+
   const formatCellValue = (value: any) => {
     if (value === null || value === undefined) return '-';
     if (Array.isArray(value)) {
-      // Handle arrays like experience
       return value.map((item, idx) => {
         if (typeof item === 'object') {
           return Object.values(item).join(' - ');
@@ -137,7 +191,6 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
       }).join('; ');
     }
     if (typeof value === 'object') {
-      // Handle nested objects like contact_info
       return Object.values(value).filter(v => v !== null && v !== undefined).join(', ') || '-';
     }
     return String(value);
@@ -146,13 +199,17 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
   const renderLeadTable = (leads: any[]) => {
     if (leads.length === 0) return null;
 
-    // Get all unique keys from all lead objects to create dynamic columns
     const allKeys = Array.from(new Set(leads.flatMap(lead => Object.keys(lead))));
-    
-    // Format column headers (capitalize first letter and replace underscores with spaces)
     const formatHeader = (key: string) => {
       return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ');
     };
+
+    const availableContacts = leads.filter((_, index) => !addedContacts.has(index));
+    const allAvailableSelected = availableContacts.length > 0 && 
+      availableContacts.every((_, originalIndex) => {
+        const actualIndex = leads.findIndex(lead => lead === leads[originalIndex]);
+        return selectedContacts.has(actualIndex);
+      });
 
     return (
       <div className="space-y-6">
@@ -160,6 +217,13 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={allAvailableSelected}
+                    onCheckedChange={(checked) => handleSelectAll(leads, !!checked)}
+                    disabled={availableContacts.length === 0}
+                  />
+                </TableHead>
                 {allKeys.map((key) => (
                   <TableHead key={key} className="text-muted-foreground">
                     {formatHeader(key)}
@@ -168,47 +232,67 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {leads.map((lead, index) => (
-                <TableRow key={index}>
-                  {allKeys.map((key) => (
-                    <TableCell key={key} className="text-foreground">
-                      {formatCellValue(lead[key])}
+              {leads.map((lead, index) => {
+                const isAdded = addedContacts.has(index);
+                const isSelected = selectedContacts.has(index);
+                
+                return (
+                  <TableRow 
+                    key={index}
+                    className={cn(
+                      isAdded && "opacity-50 bg-muted/50"
+                    )}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(checked) => handleContactSelection(index, !!checked)}
+                        disabled={isAdded}
+                      />
                     </TableCell>
-                  ))}
-                </TableRow>
-              ))}
+                    {allKeys.map((key) => (
+                      <TableCell 
+                        key={key} 
+                        className={cn(
+                          "text-foreground",
+                          isAdded && "text-muted-foreground"
+                        )}
+                      >
+                        {formatCellValue(lead[key])}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
         <div className="flex justify-center pt-4">
           <Button 
             onClick={handleAddToContacts} 
-            disabled={isAddingContacts || contactsAdded}
+            disabled={selectedContacts.size === 0 || isAddingContacts}
             className={cn(
               "transition-all duration-200",
-              contactsAdded 
-                ? "bg-muted text-muted-foreground cursor-not-allowed" 
+              selectedContacts.size === 0 
+                ? "opacity-50 cursor-not-allowed" 
                 : "bg-primary text-primary-foreground hover:bg-primary/90"
             )}
           >
-            {isAddingContacts ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Adding Contacts...
-              </>
-            ) : contactsAdded ? (
-              <>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Contacts Added
-              </>
-            ) : (
-              <>
-                <Users className="h-4 w-4 mr-2" />
-                Add to Contacts
-              </>
-            )}
+            <Users className="h-4 w-4 mr-2" />
+            Add {selectedContacts.size} Contact{selectedContacts.size !== 1 ? 's' : ''}
           </Button>
         </div>
+
+        {user && (
+          <InitialTaggingModal
+            isOpen={showTaggingModal}
+            onClose={() => setShowTaggingModal(false)}
+            onConfirm={handleConfirmAddContacts}
+            selectedCount={selectedContacts.size}
+            isLoading={isAddingContacts}
+            userId={user.id}
+          />
+        )}
       </div>
     );
   };
@@ -252,7 +336,6 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
       );
     }
 
-    // If output is an object, display it as formatted JSON
     if (typeof output === 'object') {
       return (
         <Textarea
@@ -263,7 +346,6 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
       );
     }
 
-    // Fallback for other types
     return (
       <Textarea
         value={String(output)}
