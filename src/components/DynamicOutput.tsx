@@ -205,11 +205,12 @@ export const DynamicOutput: React.FC<DynamicOutputProps> = ({
     };
 
     const availableContacts = leads.filter((_, index) => !addedContacts.has(index));
-    const allAvailableSelected = availableContacts.length > 0 && 
-      availableContacts.every((_, originalIndex) => {
-        const actualIndex = leads.findIndex(lead => lead === leads[originalIndex]);
-        return selectedContacts.has(actualIndex);
-      });
+    const availableIndexes = leads
+      .map((_, index) => index)
+      .filter(index => !addedContacts.has(index));
+    
+    const allAvailableSelected = availableIndexes.length > 0 && 
+      availableIndexes.every(index => selectedContacts.has(index));
 
     return (
       <div className="space-y-6">

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { handleInsufficientCredits } from "@/utils/payment";
 import { DynamicForm } from "@/components/DynamicForm";
 import { DynamicOutput } from "@/components/DynamicOutput";
 import { Tables } from "@/integrations/supabase/types";
+import { ToolLoadingState } from "@/components/ToolLoadingState";
 
 // Define the tool interface with proper typing
 interface Tool {
@@ -59,10 +59,13 @@ const ToolInterface = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [userCredits, setUserCredits] = useState(0);
   const [currentExecution, setCurrentExecution] = useState<ToolExecution | null>(null);
+  const [isToolLoading, setIsToolLoading] = useState(true);
 
   useEffect(() => {
     const fetchTool = async () => {
       if (!id) return;
+      
+      setIsToolLoading(true);
       
       // Clear previous execution when switching tools
       setCurrentExecution(null);
@@ -125,6 +128,7 @@ const ToolInterface = () => {
       if (!toolData) {
         console.error('Tool not found with any method');
         setTool(undefined);
+        setIsToolLoading(false);
         return;
       }
 
@@ -143,6 +147,7 @@ const ToolInterface = () => {
       
       console.log('Successfully fetched tool:', convertedTool);
       setTool(convertedTool);
+      setIsToolLoading(false);
     };
 
     fetchTool();
@@ -322,6 +327,10 @@ const ToolInterface = () => {
       setIsLoading(false);
     }
   };
+
+  if (isToolLoading) {
+    return <ToolLoadingState />;
+  }
 
   if (!tool) {
     return (
