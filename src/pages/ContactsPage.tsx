@@ -7,8 +7,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Trash2, Download, UserPlus, Clock, Loader2, Users, Database } from 'lucide-react';
+import { Trash2, Download, UserPlus, Clock, Loader2, Users, Database, Tags } from 'lucide-react';
 import { format } from 'date-fns';
+import { TagBadge } from '@/components/TagBadge';
+import { TagManagementModal } from '@/components/TagManagementModal';
 
 interface Contact {
   id: string;
@@ -20,6 +22,7 @@ interface Contact {
   address: string | null;
   status: string | null;
   added_at_date: string;
+  tags: string[] | null;
 }
 
 const ContactsPage = () => {
@@ -28,6 +31,7 @@ const ContactsPage = () => {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [tagModalOpen, setTagModalOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -126,7 +130,7 @@ const ContactsPage = () => {
     );
 
     const csvContent = [
-      ['Name', 'Email', 'Phone', 'Company', 'Position', 'Address', 'Status', 'Added Date'],
+      ['Name', 'Email', 'Phone', 'Company', 'Position', 'Address', 'Status', 'Tags', 'Added Date'],
       ...selectedContactsData.map(contact => [
         contact.name || '',
         contact.email || '',
@@ -135,6 +139,7 @@ const ContactsPage = () => {
         contact.contact_position || '',
         contact.address || '',
         contact.status || '',
+        (contact.tags || []).join(', '),
         format(new Date(contact.added_at_date), 'yyyy-MM-dd HH:mm:ss')
       ])
     ].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
@@ -167,6 +172,17 @@ const ContactsPage = () => {
       title: "Follow Up",
       description: `${selectedContacts.length} contact(s) marked for follow-up - Feature coming soon!`,
     });
+  };
+
+  const handleTagsChange = () => {
+    const selectedContactsData = contacts.filter(contact => 
+      selectedContacts.includes(contact.id)
+    );
+    setTagModalOpen(true);
+  };
+
+  const getSelectedContactsData = () => {
+    return contacts.filter(contact => selectedContacts.includes(contact.id));
   };
 
   if (loading) {
@@ -235,6 +251,16 @@ const ContactsPage = () => {
               <Button 
                 variant="outline" 
                 size="sm" 
+                onClick={handleTagsChange}
+                disabled={selectedContacts.length === 0 || actionLoading}
+                className="disabled:opacity-50"
+              >
+                <Tags className="h-4 w-4 mr-2" />
+                Change Tags
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
                 onClick={handleAddToCRM}
                 disabled={selectedContacts.length === 0 || actionLoading}
                 className="disabled:opacity-50"
@@ -294,10 +320,10 @@ const ContactsPage = () => {
                         <Checkbox
                           checked={selectedContacts.length === contacts.length && contacts.length > 0}
                           onCheckedChange={handleSelectAll}
-                          className="rounded-sm"
                         />
                       </TableHead>
                       <TableHead>Name</TableHead>
+                      <TableHead>Tags</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Phone</TableHead>
                       <TableHead>Company</TableHead>
@@ -317,11 +343,21 @@ const ContactsPage = () => {
                           <Checkbox
                             checked={selectedContacts.includes(contact.id)}
                             onCheckedChange={() => handleSelectContact(contact.id)}
-                            className="rounded-sm"
                           />
                         </TableCell>
                         <TableCell className="font-medium">
                           {contact.name || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1 max-w-48">
+                            {contact.tags && contact.tags.length > 0 ? (
+                              contact.tags.map((tag) => (
+                                <TagBadge key={tag} tag={tag} />
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground text-sm">No tags</span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {contact.email || '-'}
@@ -358,6 +394,20 @@ const ContactsPage = () => {
             </CardContent>
           </Card>
         </>
+      )}
+
+      {/* Tag Management Modal */}
+      {user && (
+        <TagManagementModal
+          isOpen={tagModalOpen}
+          onClose={() => setTagModalOpen(false)}
+          selectedContacts={getSelectedContactsData()}
+          onTagsUpdated={() => {
+            fetchContacts();
+            setSelectedContacts([]);
+          }}
+          userId={user.id}
+        />
       )}
     </div>
   );

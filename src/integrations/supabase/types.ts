@@ -20,6 +20,7 @@ export type Database = {
           name: string | null
           phone_number: string | null
           status: string | null
+          tags: string[] | null
           user_id: string
         }
         Insert: {
@@ -32,6 +33,7 @@ export type Database = {
           name?: string | null
           phone_number?: string | null
           status?: string | null
+          tags?: string[] | null
           user_id: string
         }
         Update: {
@@ -44,6 +46,7 @@ export type Database = {
           name?: string | null
           phone_number?: string | null
           status?: string | null
+          tags?: string[] | null
           user_id?: string
         }
         Relationships: [
@@ -234,6 +237,35 @@ export type Database = {
           },
           {
             foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_tags: {
+        Row: {
+          created_at: string
+          id: string
+          tag_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          tag_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          tag_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_tags_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
