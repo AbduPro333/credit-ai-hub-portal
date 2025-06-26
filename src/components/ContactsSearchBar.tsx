@@ -54,6 +54,13 @@ export const ContactsSearchBar = ({
     onClearSearch();
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Prevent form submission on Enter key
+    if (e.key === 'Enter') {
+      e.preventDefault();
+    }
+  };
+
   return (
     <div className={cn("flex flex-col sm:flex-row gap-3", className)}>
       <div className="flex-1 relative">
@@ -62,6 +69,7 @@ export const ContactsSearchBar = ({
           placeholder={`Search contacts by ${searchFields.find(f => f.value === searchField)?.label.toLowerCase() || 'field'}...`}
           value={localSearchQuery}
           onChange={(e) => setLocalSearchQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
           className="pl-10 pr-10"
         />
         {localSearchQuery && (
@@ -69,6 +77,7 @@ export const ContactsSearchBar = ({
             variant="ghost"
             size="sm"
             onClick={handleClearSearch}
+            type="button"
             className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
           >
             <X className="h-4 w-4" />

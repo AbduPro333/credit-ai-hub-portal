@@ -94,6 +94,16 @@ export const ContactsTagFilter = ({
     }, 200);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Prevent form submission on Enter key
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (inputValue.trim()) {
+        addTag(inputValue.trim());
+      }
+    }
+  };
+
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex items-center justify-between">
@@ -106,6 +116,7 @@ export const ContactsTagFilter = ({
             variant="ghost"
             size="sm"
             onClick={clearAllTags}
+            type="button"
             className="text-xs"
           >
             Clear all
@@ -134,6 +145,7 @@ export const ContactsTagFilter = ({
           onChange={(e) => setInputValue(e.target.value)}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
           placeholder="Type to search tags or click to see suggestions..."
           className="w-full"
         />
@@ -144,6 +156,7 @@ export const ContactsTagFilter = ({
               <button
                 key={suggestion}
                 onClick={() => addTag(suggestion)}
+                type="button"
                 className="w-full text-left px-3 py-2 hover:bg-accent hover:text-accent-foreground text-sm transition-colors"
               >
                 {suggestion}

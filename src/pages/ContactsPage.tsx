@@ -166,6 +166,10 @@ const ContactsPage = () => {
     return contacts.filter(contact => selectedContacts.includes(contact.id));
   };
 
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault(); // Prevent form submission
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -205,43 +209,48 @@ const ContactsPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
-          {/* Search Bar */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Search Contacts</label>
-            <ContactsSearchBar
-              searchQuery={searchQuery}
-              searchField={searchField}
-              onSearchQueryChange={setSearchQuery}
-              onSearchFieldChange={setSearchField}
-              onClearSearch={clearSearch}
-            />
-          </div>
-          
-          {/* Filter and Sort Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4 border-t border-border/30">
-            {/* Tag Filter */}
-            <div className="lg:col-span-2 space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Filter by Tags</label>
-              {user && (
-                <ContactsTagFilter
-                  selectedTags={selectedTags}
-                  onTagsChange={setSelectedTags}
-                  userId={user.id}
-                />
-              )}
-            </div>
-            
-            {/* Sort Control */}
+          {/* Prevent form submission wrapper */}
+          <form onSubmit={handleFormSubmit} className="space-y-6">
+            {/* Search Bar */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Sort Contacts</label>
-              <ContactsSortControl
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                onSortChange={handleSortChange}
-                className="justify-start"
+              <label className="text-sm font-medium text-muted-foreground">Search Contacts</label>
+              <ContactsSearchBar
+                searchQuery={searchQuery}
+                searchField={searchField}
+                onSearchQueryChange={setSearchQuery}
+                onSearchFieldChange={setSearchField}
+                onClearSearch={clearSearch}
               />
             </div>
-          </div>
+            
+            {/* Filter and Sort Row - Improved alignment */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 pt-4 border-t border-border/30 items-end">
+              {/* Tag Filter */}
+              <div className="lg:col-span-3 space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Filter by Tags</label>
+                {user && (
+                  <ContactsTagFilter
+                    selectedTags={selectedTags}
+                    onTagsChange={setSelectedTags}
+                    userId={user.id}
+                  />
+                )}
+              </div>
+              
+              {/* Sort Control - Better alignment */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Sort Contacts</label>
+                <div className="flex items-center">
+                  <ContactsSortControl
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSortChange={handleSortChange}
+                    className="justify-start w-full"
+                  />
+                </div>
+              </div>
+            </div>
+          </form>
         </CardContent>
       </Card>
 
