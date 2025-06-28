@@ -6,10 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
-import { Trash2, Download, UserPlus, Clock, Loader2, Users, Database, Tags, Search } from 'lucide-react';
+import { Trash2, Download, UserPlus, Clock, Loader2, Users, Database, Tags, Search, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { TagBadge } from '@/components/TagBadge';
 import { TagManagementModal } from '@/components/TagManagementModal';
+import { AddContactsModal } from '@/components/AddContactsModal';
 import { ContactsSearchBar } from '@/components/ContactsSearchBar';
 import { ContactsTagFilter } from '@/components/ContactsTagFilter';
 import { ContactsSortControl } from '@/components/ContactsSortControl';
@@ -34,6 +35,7 @@ const ContactsPage = () => {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const [actionLoading, setActionLoading] = useState(false);
   const [tagModalOpen, setTagModalOpen] = useState(false);
+  const [addContactsModalOpen, setAddContactsModalOpen] = useState(false);
 
   const {
     contacts,
@@ -188,8 +190,17 @@ const ContactsPage = () => {
             </div>
           </div>
         </div>
-        <div className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
-          {contacts.length} total contacts
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-muted-foreground bg-muted px-3 py-1 rounded-full">
+            {contacts.length} total contacts
+          </div>
+          <Button
+            onClick={() => setAddContactsModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add New Contacts
+          </Button>
         </div>
       </div>
 
@@ -448,6 +459,19 @@ const ContactsPage = () => {
           onClose={() => setTagModalOpen(false)}
           selectedContacts={getSelectedContactsData()}
           onTagsUpdated={() => {
+            refetchContacts();
+            setSelectedContacts([]);
+          }}
+          userId={user.id}
+        />
+      )}
+
+      {/* Add Contacts Modal */}
+      {user && (
+        <AddContactsModal
+          isOpen={addContactsModalOpen}
+          onClose={() => setAddContactsModalOpen(false)}
+          onContactsAdded={() => {
             refetchContacts();
             setSelectedContacts([]);
           }}
