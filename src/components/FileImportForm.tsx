@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -6,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { TagInput } from './TagInput';
 import { toast } from '@/hooks/use-toast';
 import { addContactsToDatabase, normalizeContactData, ContactData } from '@/utils/contacts';
-import { Upload, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Loader2, CheckCircle, AlertCircle, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 
@@ -25,6 +24,26 @@ export const FileImportForm = ({ userId, onContactsAdded, onCancel }: FileImport
   const [isImporting, setIsImporting] = useState(false);
   const [step, setStep] = useState<'upload' | 'preview' | 'tags'>('upload');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const downloadTemplate = () => {
+    const headers = ['name', 'email', 'phone_number', 'company_name', 'contact_position', 'address', 'status'];
+    const csvContent = headers.join(',') + '\n';
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'contacts_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    toast({
+      title: "Template Downloaded",
+      description: "CSV template has been downloaded successfully.",
+    });
+  };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -148,8 +167,20 @@ export const FileImportForm = ({ userId, onContactsAdded, onCancel }: FileImport
     <div className="space-y-4 py-4">
       {step === 'upload' && (
         <>
-          <div className="space-y-2">
-            <Label>Select File</Label>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Select File</Label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={downloadTemplate}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Get Template CSV
+              </Button>
+            </div>
             <Card className="border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors">
               <CardContent className="flex flex-col items-center justify-center p-6">
                 <Upload className="h-8 w-8 text-muted-foreground mb-4" />

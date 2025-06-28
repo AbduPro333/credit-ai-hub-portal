@@ -204,20 +204,20 @@ const ContactsPage = () => {
         </div>
       </div>
 
-      {/* Enhanced Search, Filter, and Sort Controls - Always Visible */}
-      <Card className="border-2 border-border/50 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-muted/50 to-muted/30 border-b border-border/50">
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5 text-primary" />
+      {/* Compact Search, Filter, and Sort Controls */}
+      <Card className="border border-border/40 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Search className="h-4 w-4 text-primary" />
             Find & Organize Contacts
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6 space-y-6">
+        <CardContent className="pt-0 pb-4 space-y-4">
           {/* Prevent form submission wrapper */}
-          <form onSubmit={handleFormSubmit} className="space-y-6">
-            {/* Search Bar */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Search Contacts</label>
+          <form onSubmit={handleFormSubmit} className="space-y-4">
+            {/* Search Bar - More compact */}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Search Contacts</label>
               <ContactsSearchBar
                 searchQuery={searchQuery}
                 searchField={searchField}
@@ -227,11 +227,11 @@ const ContactsPage = () => {
               />
             </div>
             
-            {/* Filter and Sort Row - Improved alignment */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 pt-4 border-t border-border/30 items-end">
-              {/* Tag Filter */}
-              <div className="lg:col-span-3 space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Filter by Tags</label>
+            {/* Filter and Sort Row - More compact layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-start">
+              {/* Tag Filter - Takes more space */}
+              <div className="lg:col-span-4 space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Filter by Tags</label>
                 {user && (
                   <ContactsTagFilter
                     selectedTags={selectedTags}
@@ -241,17 +241,15 @@ const ContactsPage = () => {
                 )}
               </div>
               
-              {/* Sort Control - Better alignment */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Sort Contacts</label>
-                <div className="flex items-center">
-                  <ContactsSortControl
-                    sortBy={sortBy}
-                    sortOrder={sortOrder}
-                    onSortChange={handleSortChange}
-                    className="justify-start w-full"
-                  />
-                </div>
+              {/* Sort Control - Compact */}
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Sort</label>
+                <ContactsSortControl
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onSortChange={handleSortChange}
+                  className="w-full"
+                />
               </div>
             </div>
           </form>

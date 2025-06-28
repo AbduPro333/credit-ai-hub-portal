@@ -79,14 +79,21 @@ export const normalizeContactData = (rawData: any): ContactData[] => {
   }
 
   // Normalize field names to match our database schema
-  return contacts.map(contact => ({
-    name: contact.name || contact.full_name || (contact.firstName && contact.lastName ? `${contact.firstName} ${contact.lastName}` : null) || null,
-    email: contact.email || contact.contact_info?.email || null,
-    phone_number: contact.phone || contact.phone_number || contact.contact_info?.phone || null,
-    company_name: contact.company || contact.company_name || null,
-    contact_position: contact.position || contact.contact_position || contact.headline || contact.title || null,
-    address: contact.address || contact.location || null,
-    status: contact.status || 'new',
-    tags: contact.tags || null
-  }));
+  // Explicitly ignore tags and added_at_date from imported data
+  return contacts.map(contact => {
+    // Create a copy without tags and added_at_date
+    const { tags, added_at_date, ...cleanContact } = contact;
+    
+    return {
+      name: cleanContact.name || cleanContact.full_name || (cleanContact.firstName && cleanContact.lastName ? `${cleanContact.firstName} ${cleanContact.lastName}` : null) || null,
+      email: cleanContact.email || cleanContact.contact_info?.email || null,
+      phone_number: cleanContact.phone || cleanContact.phone_number || cleanContact.contact_info?.phone || null,
+      company_name: cleanContact.company || cleanContact.company_name || null,
+      contact_position: cleanContact.position || cleanContact.contact_position || cleanContact.headline || cleanContact.title || null,
+      address: cleanContact.address || cleanContact.location || null,
+      status: cleanContact.status || 'new',
+      // tags will be handled separately by the application
+      tags: null
+    };
+  });
 };

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -105,27 +104,9 @@ export const ContactsTagFilter = ({
   };
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Tags className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Filter by Tags</span>
-        </div>
-        {selectedTags.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearAllTags}
-            type="button"
-            className="text-xs"
-          >
-            Clear all
-          </Button>
-        )}
-      </div>
-
+    <div className={cn("space-y-2", className)}>
       {selectedTags.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1">
           {selectedTags.map((tag) => (
             <TagBadge
               key={tag}
@@ -146,18 +127,18 @@ export const ContactsTagFilter = ({
           onFocus={handleFocus}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          placeholder="Type to search tags or click to see suggestions..."
-          className="w-full"
+          placeholder="Type to search tags..."
+          className="w-full h-9"
         />
         
         {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 bg-popover border border-border rounded-md shadow-lg z-50 max-h-40 overflow-y-auto mt-1">
+          <div className="absolute top-full left-0 right-0 bg-popover border border-border rounded-md shadow-lg z-50 max-h-32 overflow-y-auto mt-1">
             {suggestions.map((suggestion) => (
               <button
                 key={suggestion}
                 onClick={() => addTag(suggestion)}
                 type="button"
-                className="w-full text-left px-3 py-2 hover:bg-accent hover:text-accent-foreground text-sm transition-colors"
+                className="w-full text-left px-3 py-1.5 hover:bg-accent hover:text-accent-foreground text-sm transition-colors"
               >
                 {suggestion}
               </button>
@@ -165,6 +146,18 @@ export const ContactsTagFilter = ({
           </div>
         )}
       </div>
+      
+      {selectedTags.length > 0 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={clearAllTags}
+          type="button"
+          className="text-xs h-6 px-2"
+        >
+          Clear all
+        </Button>
+      )}
     </div>
   );
 };

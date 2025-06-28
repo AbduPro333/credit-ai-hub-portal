@@ -38,9 +38,9 @@ export const ContactsSortControl = ({
   };
 
   return (
-    <div className={cn("flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full", className)}>
+    <div className={cn("flex flex-col gap-1 w-full", className)}>
       <Select value={sortBy} onValueChange={handleSortByChange}>
-        <SelectTrigger className="w-full sm:w-32">
+        <SelectTrigger className="w-full h-9">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -54,7 +54,7 @@ export const ContactsSortControl = ({
       <button
         onClick={handleSortOrderToggle}
         type="button"
-        className="flex items-center gap-1 px-2 py-1 text-xs bg-muted hover:bg-muted/80 rounded transition-colors whitespace-nowrap self-start sm:self-auto"
+        className="flex items-center justify-center gap-1 px-2 py-1 text-xs bg-muted hover:bg-muted/80 rounded transition-colors h-6"
         title={getSortOrderLabel()}
       >
         {sortOrder === 'asc' ? (
@@ -62,7 +62,7 @@ export const ContactsSortControl = ({
         ) : (
           <ArrowDown className="h-3 w-3" />
         )}
-        <span className="hidden sm:inline">{getSortOrderLabel()}</span>
+        <span>{getSortOrderLabel()}</span>
       </button>
     </div>
   );
