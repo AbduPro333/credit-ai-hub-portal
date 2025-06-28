@@ -12,6 +12,7 @@ import { DynamicForm } from "@/components/DynamicForm";
 import { DynamicOutput } from "@/components/DynamicOutput";
 import { Tables } from "@/integrations/supabase/types";
 import { ToolLoadingState } from "@/components/ToolLoadingState";
+import { EnhancedToolLoading } from "@/components/EnhancedToolLoading";
 
 // Define the tool interface with proper typing
 interface Tool {
@@ -47,6 +48,7 @@ interface ToolExecution {
   status: string;
   credits_used: number;
   created_at: string;
+  duration_ms: number;
 }
 
 const ToolInterface = () => {
@@ -60,6 +62,7 @@ const ToolInterface = () => {
   const [userCredits, setUserCredits] = useState(0);
   const [currentExecution, setCurrentExecution] = useState<ToolExecution | null>(null);
   const [isToolLoading, setIsToolLoading] = useState(true);
+  const [executionStartTime, setExecutionStartTime] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchTool = async () => {
@@ -195,6 +198,8 @@ const ToolInterface = () => {
     }
 
     setIsLoading(true);
+    const startTime = Date.now();
+    setExecutionStartTime(startTime);
 
     try {
       const requiredCredits = tool.credit_cost || 1;
@@ -262,12 +267,17 @@ const ToolInterface = () => {
       const webhookResult = await webhookResponse.json();
       console.log('Webhook response:', webhookResult);
 
-      // Update execution with results
+      // Calculate execution duration
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+
+      // Update execution with results and duration
       const { error: updateError } = await supabase
         .from('tool_executions')
         .update({ 
           output_data: webhookResult,
-          status: 'completed'
+          status: 'completed',
+          duration_ms: duration
         })
         .eq('id', executionData.id);
 
@@ -290,7 +300,8 @@ const ToolInterface = () => {
       setCurrentExecution(prev => prev ? {
         ...prev,
         output_data: webhookResult,
-        status: 'completed'
+        status: 'completed',
+        duration_ms: duration
       } : null);
 
       toast({
@@ -301,20 +312,26 @@ const ToolInterface = () => {
     } catch (error) {
       console.error('Error executing tool:', error);
       
+      // Calculate duration even for errors
+      const endTime = Date.now();
+      const duration = executionStartTime ? endTime - executionStartTime : 0;
+      
       // Update execution status to error
       if (currentExecution) {
         await supabase
           .from('tool_executions')
           .update({ 
             status: 'error',
-            output_data: { error: error instanceof Error ? error.message : 'Unknown error occurred' }
+            output_data: { error: error instanceof Error ? error.message : 'Unknown error occurred' },
+            duration_ms: duration
           })
           .eq('id', currentExecution.id);
         
         setCurrentExecution(prev => prev ? { 
           ...prev, 
           status: 'error',
-          output_data: { error: error instanceof Error ? error.message : 'Unknown error occurred' }
+          output_data: { error: error instanceof Error ? error.message : 'Unknown error occurred' },
+          duration_ms: duration
         } : null);
       }
 
@@ -325,6 +342,7 @@ const ToolInterface = () => {
       });
     } finally {
       setIsLoading(false);
+      setExecutionStartTime(null);
     }
   };
 
@@ -432,13 +450,21 @@ const ToolInterface = () => {
           />
         </div>
 
-        {/* Dynamic Output Display */}
-        <DynamicOutput
-          output={currentExecution?.output_data}
-          status={currentExecution?.status as any || 'pending'}
-          outputSchema={tool.output_schema}
-          toolCategory={tool.category}
-        />
+        {/* Enhanced Loading State or Dynamic Output Display */}
+        {isLoading && user && tool ? (
+          <EnhancedToolLoading 
+            toolId={tool.id}
+            userId={user.id}
+            toolName={tool.name}
+          />
+        ) : (
+          <DynamicOutput
+            output={currentExecution?.output_data}
+            status={currentExecution?.status as any || 'pending'}
+            outputSchema={tool.output_schema}
+            toolCategory={tool.category}
+          />
+        )}
       </div>
     </div>
   );

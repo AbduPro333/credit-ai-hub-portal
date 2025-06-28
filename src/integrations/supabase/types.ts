@@ -104,6 +104,7 @@ export type Database = {
         Row: {
           created_at: string
           credits_used: number | null
+          duration_ms: number | null
           id: string
           input_data: Json
           output_data: Json | null
@@ -115,6 +116,7 @@ export type Database = {
         Insert: {
           created_at?: string
           credits_used?: number | null
+          duration_ms?: number | null
           id?: string
           input_data: Json
           output_data?: Json | null
@@ -126,6 +128,7 @@ export type Database = {
         Update: {
           created_at?: string
           credits_used?: number | null
+          duration_ms?: number | null
           id?: string
           input_data?: Json
           output_data?: Json | null
